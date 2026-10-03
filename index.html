@@ -626,50 +626,92 @@ async function gerar(nome, conteudo){
   btnBaixar.disabled=true; btnRefazer.disabled=true; elPrev.innerHTML="";
   msg("Criando uma atividade aprofundada sobre “" + conteudo + "”…");
 
-  // DIRETRIZES PEDAGÓGICAS ESPECÍFICAS POR DISCIPLINA COM ALTA DIVERSIDADE DE RECURSOS
-  let diretrizDisciplina = "";
-  const ehGraficosTabelas = conteudo.toLowerCase().includes("gráfico") || conteudo.toLowerCase().includes("tabela") || conteudo.toLowerCase().includes("estatística");
+  // MAPEAMENTO SEMÂNTICO ESPECIALIZADO POR DISCIPLINA E CONTEÚDO (BNCC)
+  const cNorm = conteudo.toLowerCase();
+  let especificacaoVisual = "";
+  let tiposSugeridos = [];
 
-  if(nome === "Matemática"){
-    diretrizDisciplina = `ESPECÍFICO DE MATEMÁTICA:
-- Priorize a inclusão SIMULTÂNEA de 'grafico' e 'tabela' para enriquecer os dados dos problemas.
-- No 'grafico': forneça título e de 4 a 6 dados com 'rotulo' e 'valor' (inteiro).
-- Na 'tabela': forneça 'titulo', 'colunas' e 'linhas' com valores claros.
-- As questões devem cobrar a análise comparativa entre as informações do texto, da tabela e do gráfico.`;
-  } else if(nome === "Português"){
-    diretrizDisciplina = `ESPECÍFICO DE LÍNGUA PORTUGUESA:
-- O 'textoApoio' deve conter um texto literário ou informativo completo (conto, crônica, poema, fábula ou reportagem).
-- Inclua também uma 'tabela' organizando elementos do texto (ex: personagens e características, glossário, ou comparação de gêneros textuais).
-- Se aplicável, inclua um 'grafico' (ex: pesquisa de leitura ou temas mais votados).`;
-  } else if(nome === "Inglês"){
-    diretrizDisciplina = `ESPECÍFICO DE LÍNGUA INGLESA:
-- O 'textoApoio' deve conter diálogo ou texto temático contextualizado com vocabulário da série.
-- Inclua uma 'tabela' funcionando como 'Word Bank' ou guia visual comparativo (ex: English / Português / Exemplo).
-- Inclua um 'grafico' temático ilustrando uma pesquisa simples da turma (ex: Favorite Colors, Favorite Pets).`;
+  if(nome === "Língua Portuguesa" || nome === "Português"){
+    if(cNorm.includes("gênero") || cNorm.includes("conto") || cNorm.includes("poema") || cNorm.includes("receita") || cNorm.includes("notícia") || cNorm.includes("carta")){
+      especificacaoVisual = `ESPECÍFICO DE LÍNGUA PORTUGUESA - GÊNEROS TEXTUAIS:
+- 'textoApoio': Apresente um texto exemplar autêntico do gênero (${conteudo}). Em poemas, use versos com quebra de linha ('\\n'). Em receitas, separe ingredientes e modo de preparo.
+- Nas figuras das questões: use 'baloes_dialogo' (personagens conversando em balões de fala para interpretação de fala, pontuação ou ironia) ou 'verbete_dicionario' (para enriquecimento semântico).`;
+      tiposSugeridos = ["baloes_dialogo", "verbete_dicionario"];
+    } else if(cNorm.includes("ortografia") || cNorm.includes("acentuação") || cNorm.includes("substantivo") || cNorm.includes("adjetivo") || cNorm.includes("verbo") || cNorm.includes("sinônimo") || cNorm.includes("pontuação")){
+      especificacaoVisual = `ESPECÍFICO DE LÍNGUA PORTUGUESA - LÍNGUA E GRAMÁTICA:
+- 'textoApoio': Texto literário ou informativo curto contextualizando o uso prático da língua.
+- Nas figuras das questões: use 'verbete_dicionario' (palavra destacada, separação silábica, classe e acepções) ou 'baloes_dialogo' (para demonstrar entonação de pontuação).`;
+      tiposSugeridos = ["verbete_dicionario", "baloes_dialogo"];
+    } else {
+      especificacaoVisual = `ESPECÍFICO DE LÍNGUA PORTUGUESA:
+- 'textoApoio': Narrativa com diálogo ou crônica infantil. Nas figuras, priorize 'baloes_dialogo' e 'verbete_dicionario'.`;
+      tiposSugeridos = ["baloes_dialogo", "verbete_dicionario"];
+    }
+  } else if(nome === "Matemática"){
+    if(cNorm.includes("fração") || cNorm.includes("fracao")){
+      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - FRAÇÕES:
+- Nas figuras das questões: inclua obrigatoriamente 'fracao_visual' (partes pintadas em círculo 'pizza' ou retângulo 'barra' com numerador e denominador) ou 'reta_numerica' fracionária.`;
+      tiposSugeridos = ["fracao_visual", "reta_numerica"];
+    } else if(cNorm.includes("geometria") || cNorm.includes("figuras planas") || cNorm.includes("sólidos") || cNorm.includes("perímetro") || cNorm.includes("área")){
+      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - GEOMETRIA:
+- Nas figuras das questões: use 'forma_geometrica' com formas planas cotadas (retângulo, triângulo, quadrado) ou sólidos (cubo, cilindro) com dimensões para perímetro, área ou contagem de vértices/faces.`;
+      tiposSugeridos = ["forma_geometrica"];
+    } else if(cNorm.includes("comprimento") || cNorm.includes("massa") || cNorm.includes("capacidade") || cNorm.includes("tempo")){
+      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - GRANDEZAS E MEDIDAS:
+- Nas figuras das questões: use 'relogio' para horas/minutos, 'balanca_medicao' para pesagens e massas equilibradas/desiguais, ou 'reta_numerica' como régua/escala graduada.`;
+      tiposSugeridos = ["relogio", "balanca_medicao", "reta_numerica"];
+    } else if(cNorm.includes("gráfico") || cNorm.includes("tabela") || cNorm.includes("estatística")){
+      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - ESTATÍSTICA E DADOS:
+- Forneça simultaneamente 'grafico' e 'tabela' na introdução e use 'mini_grafico' nas questões para análise rápida.`;
+      tiposSugeridos = ["mini_grafico"];
+    } else {
+      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - NÚMEROS E OPERAÇÕES:
+- Nas figuras das questões: use 'reta_numerica' com marcador/destaque, 'mini_grafico' ou 'forma_geometrica'.`;
+      tiposSugeridos = ["reta_numerica", "mini_grafico", "forma_geometrica"];
+    }
   } else if(nome === "História"){
-    diretrizDisciplina = `ESPECÍFICO DE HISTÓRIA:
-- O texto de apoio deve contextualizar acontecimentos históricos, marcos temporais e protagonismo social.
-- Inclua uma 'tabela' cronológica de eventos/fatos históricos com colunas como [Ano/Época, Acontecimento, Impacto].
-- Se pertinente, traga um 'grafico' comparativo histórico ou demográfico.`;
+    especificacaoVisual = `ESPECÍFICO DE HISTÓRIA (${conteudo.toUpperCase()}):
+- 'textoApoio': Contextualize marcos temporais, transformações sociais e personagens históricos.
+- Nas figuras das questões: use 'linha_do_tempo' (sucessão cronológica de marcos e anos) e 'ficha_fonte' (fonte histórica escrita, material ou iconográfica com autor, época e trecho para o aluno investigar).`;
+    tiposSugeridos = ["linha_do_tempo", "ficha_fonte"];
   } else if(nome === "Geografia"){
-    diretrizDisciplina = `ESPECÍFICO DE GEOGRAFIA:
-- Apresente dados geográficos precisos sobre regiões brasileiras, clima, relevo, população ou biomas.
-- Inclua uma 'tabela' com dados comparativos (ex: Região, Clima, Características ou População).
-- Inclua um 'grafico' com dados numéricos reais ou proporcionais sobre a temática abordada.`;
+    if(cNorm.includes("orientação") || cNorm.includes("localização") || cNorm.includes("mapa")){
+      especificacaoVisual = `ESPECÍFICO DE GEOGRAFIA - ORIENTAÇÃO E CARTOGRAFIA:
+- Nas figuras das questões: use obrigatoriamente 'rosa_dos_ventos' com destaque em sentidos cardeais ou colaterais.`;
+      tiposSugeridos = ["rosa_dos_ventos", "mini_grafico"];
+    } else {
+      especificacaoVisual = `ESPECÍFICO DE GEOGRAFIA (${conteudo.toUpperCase()}):
+- 'textoApoio': Dados e descrições do território, relevo, clima e população.
+- Nas figuras das questões: use 'rosa_dos_ventos' e 'mini_grafico' comparando regiões brasileiras.`;
+      tiposSugeridos = ["rosa_dos_ventos", "mini_grafico"];
+    }
   } else if(nome === "Ciências"){
-    diretrizDisciplina = `ESPECÍFICO DE CIÊNCIAS:
-- Traga conceitos científicos bem explicados (ciclo da água, sistemas do corpo, seres vivos, ecologia).
-- Inclua uma 'tabela' comparativa detalhando características de elementos, órgãos ou animais.
-- Inclua um 'grafico' com dados científicos apropriados para a série (ex: consumo de água, temperatura, tempo de decomposição).`;
+    if(cNorm.includes("cadeia") || cNorm.includes("ecossistema") || cNorm.includes("seres vivos") || cNorm.includes("alimentação")){
+      especificacaoVisual = `ESPECÍFICO DE CIÊNCIAS - ECOLOGIA E VIDA:
+- Nas figuras das questões: use 'cadeia_alimentar' (fluxo de energia: Produtor ➔ Consumidor Herbívoro ➔ Consumidor Carnívoro ➔ Decompositor).`;
+      tiposSugeridos = ["cadeia_alimentar", "ciclo_esquema"];
+    } else if(cNorm.includes("água") || cNorm.includes("ciclo") || cNorm.includes("matéria") || cNorm.includes("estados") || cNorm.includes("energia")){
+      especificacaoVisual = `ESPECÍFICO DE CIÊNCIAS - MATÉRIA E PROCESSOS NATURAIS:
+- Nas figuras das questões: use 'ciclo_esquema' (mostrando transformações de estado físico ou etapas do ciclo da água).`;
+      tiposSugeridos = ["ciclo_esquema", "cadeia_alimentar"];
+    } else {
+      especificacaoVisual = `ESPECÍFICO DE CIÊNCIAS (${conteudo.toUpperCase()}):
+- Nas figuras das questões: use 'cadeia_alimentar' ou 'ciclo_esquema' adaptados ao tema biológico.`;
+      tiposSugeridos = ["cadeia_alimentar", "ciclo_esquema"];
+    }
   } else if(nome === "Arte"){
-    diretrizDisciplina = `ESPECÍFICO DE ARTE:
-- Explore elementos de linguagens visuais, cores primárias/secundárias, técnicas e manifestações culturais.
-- Inclua uma 'tabela' com estilos, artistas e características artísticas.
-- Inclua um 'grafico' comparativo de preferências de técnicas ou manifestações artísticas populares.`;
+    especificacaoVisual = `ESPECÍFICO DE ARTE (${conteudo.toUpperCase()}):
+- Nas figuras das questões: use 'circulo_cromatico' (demonstrando cores primárias, secundárias, misturas de cores ou tonalidades) e 'forma_geometrica' para ritmo visual e composição.`;
+    tiposSugeridos = ["circulo_cromatico", "forma_geometrica"];
+  } else if(nome === "Inglês"){
+    especificacaoVisual = `ESPECÍFICO DE LÍNGUA INGLESA (${conteudo.toUpperCase()}):
+- 'textoApoio': Diálogo ou pequeno texto em inglês adequado à faixa etária com vocabulário contextual.
+- Nas figuras das questões: use 'baloes_dialogo' (diálogo em inglês entre dois personagens) ou 'relogio' para horas ('What time is it?').`;
+    tiposSugeridos = ["baloes_dialogo", "relogio"];
   } else {
-    diretrizDisciplina = `ESPECÍFICO DE ${nome.toUpperCase()}:
-- Aborde regras de convivência, cidadania, esportes ou práticas corporais saudáveis.
-- Inclua uma 'tabela' informativa e, quando possível, um 'grafico' comparativo de dados da disciplina.`;
+    especificacaoVisual = `ESPECÍFICO DE ${nome.toUpperCase()} (${conteudo.toUpperCase()}):
+- Nas figuras das questões: use 'quadro_reflexivo' (estruturando ações vs consequências, regras esportivas ou direitos e deveres do cidadão).`;
+    tiposSugeridos = ["quadro_reflexivo"];
   }
 
   // DIRETRIZES DE CALIBRAÇÃO PEDAGÓGICA POR NÍVEL ESCOLAR (4º vs 5º ANO)
@@ -679,44 +721,36 @@ async function gerar(nome, conteudo){
   if(eh4Ano){
     calibracaoAno = `DIRETRIZ PEDAGÓGICA E LIMITES COGNITIVOS DO 4º ANO (BNCC):
 - Linguagem e Leitura: Vocabulário acessível, frases diretas e narrativas lineares. Texto de apoio com 90 a 130 palavras.
-- Matemática & Gráficos: Números até 10.000. Cálculos de adição e subtração com reagrupamento, multiplicação por 1 dígito e divisões exatas simples.
-- Em Gráficos/Tabelas: Gráficos de colunas simples com escala amigável (de 1 em 1, 5 em 5 ou 10 em 10). Dados inteiros com temas familiares (brinquedos, frutas, votos da turma). Tabelas simples de entrada única (duas colunas: Item e Quantidade).
+- Matemática & Gráficos: Números até 10.000. Cálculos fundamentais. Gráficos com escala amigável e tabelas diretas de duas colunas.
 - Questões: Focadas em identificação direta de dados, comparações diretas de maior/menor e operações fundamentais sem pegadinhas.`;
   } else {
     calibracaoAno = `DIRETRIZ PEDAGÓGICA E LIMITES COGNITIVOS DO 5º ANO (BNCC - TRANSIÇÃO PARA ANOS FINAIS):
 - Linguagem e Leitura: Maior aprofundamento textual, relações de causa/efeito, pequenos textos de divulgação científica, crônicas ou notícias. Texto de apoio com 130 a 180 palavras.
-- Matemática & Gráficos: Números até centenas de milhar e milhões. Multiplicação por 2 dígitos, divisão com resto, noções de frações equivalentes, números decimais do cotidiano (R$ e medidas) e porcentagens âncora (10%, 25%, 50%).
-- Em Gráficos/Tabelas: Gráficos de barras comparativos com escalas maiores (dezenas ou centenas). Tabelas de dupla entrada (ex: Categoria x Gênero/Período) exigindo cruzamento de linhas e colunas.
+- Matemática & Gráficos: Números até milhões, frações equivalentes, decimais e porcentagens âncora. Tabelas de dupla entrada e gráficos comparativos.
 - Questões: Exigem inferência, cálculo de diferença entre totais, análise de tabelas compostas e justificativa de raciocínio lógico.`;
   }
 
+  const ehGraficosTabelas = cNorm.includes("gráfico") || cNorm.includes("tabela") || cNorm.includes("estatística");
   const exigeGrafico = ["Matemática", "Geografia", "Ciências"].includes(nome) || ehGraficosTabelas;
   const diretrizRecursoGeral = exigeGrafico
-    ? `- ALTA RIQUEZA DE RECURSOS: Forneça sempre o texto de apoio ('textoApoio'), uma tabela estruturada ('tabela') e um gráfico de colunas ('grafico') para enriquecer a experiência visual e interpretativa do aluno.`
-    : `- RIQUEZA E ADEQUAÇÃO DE RECURSOS: Forneça sempre o texto de apoio ('textoApoio') e uma tabela estruturada ('tabela'). Inclua também 'grafico' caso haja dados numéricos pertinentes. Se o texto for literário (poema, conto ou diálogo), preserve as quebras de linha exatas com versos e estrofes.`;
+    ? `- RECURSOS INTRODUTÓRIOS: Forneça sempre o texto de apoio ('textoApoio'), uma tabela estruturada ('tabela') e um gráfico de colunas ('grafico').`
+    : `- RECURSOS INTRODUTÓRIOS: Forneça sempre o texto de apoio ('textoApoio') e uma tabela estruturada ('tabela'). Só inclua 'grafico' se houver dados numéricos reais relevantes.`;
 
   const prompt = `Você é professor(a) especialista no Ensino Fundamental brasileiro e na BNCC.
 Crie uma atividade avaliativa oficial de ${nome} para a turma de ${turmaSel}, dedicada exclusivamente ao conteúdo: "${conteudo}".
 
 ${calibracaoAno}
 
-${diretrizDisciplina}
+${especificacaoVisual}
 
 Regras pedagógicas obrigatórias:
 - Dê um título específico, evitando títulos genéricos.
 - Inclua 2 ou 3 objetivos de aprendizagem observáveis, perfeitamente adequados às habilidades da BNCC do ${turmaSel}.
 - Respeite rigorosamente o nível cognitivo e os limites matemáticos estipulados para o ${turmaSel}.
 ${diretrizRecursoGeral}
-- RECURSOS VISUAIS NAS QUESTÕES: Em Matemática, Ciências e Geografia, inclua 'figura' própria em 2 a 4 questões no JSON quando didático:
-  * 'reta_numerica': Para intervalos, números ou frações.
-  * 'relogio': Para medidas de tempo, horas e minutos.
-  * 'forma_geometrica': Para formas planas ou sólidos (retângulo, quadrado, triângulo, cubo, círculo).
-  * 'mini_grafico': Para leitura rápida de dados específicos da pergunta.
-  * 'rosa_dos_ventos': Para Geografia (orientação espacial, pontos cardeais N, S, L, O).
-  * 'cadeia_alimentar': Para Ciências (etapas em fluxo: Produtor ➔ Consumidor 1º ➔ Consumidor 2º).
-  Nas demais questões sem imagem, use tipo 'nenhuma'.
+- RECURSOS VISUAIS SEMÂNTICOS NAS QUESTÕES: Em pelo menos 2 a 4 questões, inclua uma 'figura' pedagógica autêntica e semântica aderente à disciplina (${tiposSugeridos.join(", ")}). Nas questões sem imagem, use tipo 'nenhuma'.
 - Exatamente 10 questões de múltipla escolha com 4 alternativas cada (A, B, C, D).
-- Distribua as questões integrando a leitura do texto, a análise da tabela, a interpretação do gráfico e a observação das figuras das questões.
+- As questões com figura DEVEM exigir que o aluno analise a imagem gerada para responder.
 - Apenas uma alternativa correta por questão, com distribuição equilibrada das alternativas corretas (A, B, C, D).
 - Distribuição equilibrada: 3 fáceis (compreensão direta), 4 médias (aplicação prática) e 3 que estimulem o raciocínio analítico adequado à idade.
 Responda somente em formato JSON rigoroso.`;
@@ -767,8 +801,20 @@ Responda somente em formato JSON rigoroso.`;
             figura:{
               type:"object",
               properties:{
-                tipo:{type:"string", enum:["nenhuma","reta_numerica","forma_geometrica","relogio","mini_grafico","rosa_dos_ventos","cadeia_alimentar"]},
+                tipo:{
+                  type:"string",
+                  enum:[
+                    "nenhuma",
+                    "reta_numerica", "forma_geometrica", "relogio", "mini_grafico",
+                    "fracao_visual", "balanca_medicao",
+                    "baloes_dialogo", "verbete_dicionario",
+                    "linha_do_tempo", "ficha_fonte",
+                    "rosa_dos_ventos", "cadeia_alimentar", "ciclo_esquema",
+                    "circulo_cromatico", "quadro_reflexivo"
+                  ]
+                },
                 legenda:{type:"string"},
+                // Matemática / Grandezas
                 inicio:{type:"number"},
                 fim:{type:"number"},
                 passo:{type:"number"},
@@ -781,8 +827,48 @@ Responda somente em formato JSON rigoroso.`;
                 minutos:{type:"number"},
                 rotulos:{type:"array", items:{type:"string"}},
                 valores:{type:"array", items:{type:"number"}},
+                numerador:{type:"number"},
+                denominador:{type:"number"},
+                formatoFracao:{type:"string"},
+                pratoEsquerdo:{type:"string"},
+                pratoDireito:{type:"string"},
+                // Português / Inglês
+                personagem1:{type:"string"},
+                fala1:{type:"string"},
+                personagem2:{type:"string"},
+                fala2:{type:"string"},
+                palavra:{type:"string"},
+                separacao:{type:"string"},
+                classe:{type:"string"},
+                definicoes:{type:"array", items:{type:"string"}},
+                // História / Sociedade
+                marcos:{
+                  type:"array",
+                  items:{
+                    type:"object",
+                    properties:{
+                      ano:{type:"string"},
+                      evento:{type:"string"}
+                    },
+                    required:["ano","evento"]
+                  }
+                },
+                tipoFonte:{type:"string"},
+                autorFonte:{type:"string"},
+                epocaFonte:{type:"string"},
+                trechoFonte:{type:"string"},
+                // Geografia / Ciências / Arte
                 direcaoDestaque:{type:"string"},
-                etapas:{type:"array", items:{type:"string"}}
+                etapas:{type:"array", items:{type:"string"}},
+                tituloEsquema:{type:"string"},
+                corDestaque:{type:"string"},
+                misturaCores:{type:"string"},
+                // Cidadania / Educação Física
+                tituloQuadro:{type:"string"},
+                colunaA:{type:"string"},
+                textoA:{type:"string"},
+                colunaB:{type:"string"},
+                textoB:{type:"string"}
               },
               required:["tipo"]
             },
@@ -1437,6 +1523,379 @@ function desenharFiguraQuestao(ctx, fig, x, y, larg){
     return y + hBox + 26;
   }
 
+  if(tipo === "fracao_visual"){
+    const hBox = 120;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const num = Math.max(1, Math.min(12, Number(fig.numerador ?? 3)));
+    const den = Math.max(num, Math.min(12, Number(fig.denominador ?? 4)));
+    const formato = String(fig.formatoFracao || "pizza").toLowerCase();
+    const centroX = x + larg / 2 - 40;
+    const centroY = y + 60;
+
+    if(formato.includes("barra")){
+      const barraW = 240, barraH = 46;
+      const bX = centroX - barraW / 2;
+      const bY = centroY - barraH / 2;
+      const stepW = barraW / den;
+      for(let i=0; i<den; i++){
+        ctx.fillStyle = i < num ? "#0f7a6b" : "#f1f5f9";
+        ctx.fillRect(bX + i*stepW, bY, stepW, barraH);
+        ctx.strokeStyle = "#0a5a4f";
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(bX + i*stepW, bY, stepW, barraH);
+      }
+    } else {
+      const raio = 46;
+      const anguloFatia = (2 * Math.PI) / den;
+      for(let i=0; i<den; i++){
+        const inicio = i * anguloFatia - Math.PI / 2;
+        const fim = inicio + anguloFatia;
+        ctx.beginPath();
+        ctx.moveTo(centroX, centroY);
+        ctx.arc(centroX, centroY, raio, inicio, fim);
+        ctx.closePath();
+        ctx.fillStyle = i < num ? "#0f7a6b" : "#f8fafc";
+        ctx.fill();
+        ctx.strokeStyle = "#0a5a4f";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
+    const textoX = centroX + 160;
+    ctx.fillStyle = "#20303a";
+    ctx.font = "800 24px Nunito, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(String(num), textoX, centroY - 6);
+    linha(ctx, textoX - 22, centroY, textoX + 22, centroY);
+    ctx.fillText(String(den), textoX, centroY + 26);
+
+    if(fig.legenda){
+      ctx.font = "700 14px Nunito, sans-serif";
+      ctx.fillStyle = "#475569";
+      ctx.fillText(fig.legenda, x + larg / 2, y + hBox - 8);
+    }
+
+    ctx.textAlign = "left";
+    return y + hBox + 26;
+  }
+
+  if(tipo === "balanca_medicao"){
+    const hBox = 110;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const centroX = x + larg / 2;
+    const baseRetaY = y + 42;
+    const raioBraco = 140;
+
+    ctx.fillStyle = "#475569";
+    ctx.beginPath();
+    ctx.moveTo(centroX, baseRetaY);
+    ctx.lineTo(centroX - 16, baseRetaY + 45);
+    ctx.lineTo(centroX + 16, baseRetaY + 45);
+    ctx.closePath(); ctx.fill();
+
+    ctx.strokeStyle = "#20303a";
+    ctx.lineWidth = 4;
+    linha(ctx, centroX - raioBraco, baseRetaY, centroX + raioBraco, baseRetaY);
+
+    const pEsqX = centroX - raioBraco;
+    ctx.lineWidth = 2; ctx.strokeStyle = "#64748b";
+    linha(ctx, pEsqX, baseRetaY, pEsqX - 25, baseRetaY + 35);
+    linha(ctx, pEsqX, baseRetaY, pEsqX + 25, baseRetaY + 35);
+    linha(ctx, pEsqX - 35, baseRetaY + 35, pEsqX + 35, baseRetaY + 35);
+
+    ctx.fillStyle = "#0f7a6b";
+    ctx.fillRect(pEsqX - 25, baseRetaY + 12, 50, 22);
+    ctx.fillStyle = "#ffffff"; ctx.font = "800 13px Nunito, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText(String(fig.pratoEsquerdo || "2 kg"), pEsqX, baseRetaY + 28);
+
+    const pDirX = centroX + raioBraco;
+    linha(ctx, pDirX, baseRetaY, pDirX - 25, baseRetaY + 35);
+    linha(ctx, pDirX, baseRetaY, pDirX + 25, baseRetaY + 35);
+    linha(ctx, pDirX - 35, baseRetaY + 35, pDirX + 35, baseRetaY + 35);
+
+    ctx.fillStyle = "#e4572e";
+    ctx.fillRect(pDirX - 25, baseRetaY + 12, 50, 22);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(String(fig.pratoDireito || "2000 g"), pDirX, baseRetaY + 28);
+
+    ctx.textAlign = "left";
+    return y + hBox + 26;
+  }
+
+  if(tipo === "baloes_dialogo"){
+    const hBox = 130;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const p1 = String(fig.personagem1 || "Personagem 1");
+    const f1 = String(fig.fala1 || "Olá, tudo bem?");
+    const p2 = String(fig.personagem2 || "Personagem 2");
+    const f2 = String(fig.fala2 || "Tudo bem, vamos estudar!");
+
+    const b1X = x + 35, b1Y = y + 16, b1W = Math.min((larg - 90)/2, 440), b1H = 46;
+    ctx.fillStyle = "#ecfdf5"; ctx.fillRect(b1X, b1Y, b1W, b1H);
+    ctx.strokeStyle = "#0f7a6b"; ctx.lineWidth = 1.5; ctx.strokeRect(b1X, b1Y, b1W, b1H);
+    ctx.beginPath(); ctx.moveTo(b1X + 15, b1Y + b1H); ctx.lineTo(b1X + 10, b1Y + b1H + 12); ctx.lineTo(b1X + 25, b1Y + b1H); ctx.fillStyle = "#ecfdf5"; ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#0f7a6b"; ctx.font = "800 14px Nunito, sans-serif";
+    ctx.fillText(p1 + ":", b1X + 10, b1Y + 18);
+    ctx.fillStyle = "#1e293b"; ctx.font = "600 15px Nunito, sans-serif";
+    ctx.fillText(f1.slice(0, 48), b1X + 10, b1Y + 36);
+
+    const b2X = x + larg - b1W - 35, b2Y = y + 66, b2W = b1W, b2H = 46;
+    ctx.fillStyle = "#fffbeb"; ctx.fillRect(b2X, b2Y, b2W, b2H);
+    ctx.strokeStyle = "#f59e0b"; ctx.lineWidth = 1.5; ctx.strokeRect(b2X, b2Y, b2W, b2H);
+    ctx.beginPath(); ctx.moveTo(b2X + b2W - 25, b2Y + b2H); ctx.lineTo(b2X + b2W - 10, b2Y + b2H + 12); ctx.lineTo(b2X + b2W - 15, b2Y + b2H); ctx.fillStyle = "#fffbeb"; ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "#b45309"; ctx.font = "800 14px Nunito, sans-serif";
+    ctx.fillText(p2 + ":", b2X + 10, b2Y + 18);
+    ctx.fillStyle = "#1e293b"; ctx.font = "600 15px Nunito, sans-serif";
+    ctx.fillText(f2.slice(0, 48), b2X + 10, b2Y + 36);
+
+    return y + hBox + 26;
+  }
+
+  if(tipo === "verbete_dicionario"){
+    const hBox = 115;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const pal = String(fig.palavra || "palavra");
+    const sep = String(fig.separacao || pal);
+    const cls = String(fig.classe || "s. m.");
+    const defs = fig.definicoes && fig.definicoes.length ? fig.definicoes.slice(0, 2) : ["Significado principal no contexto.", "Segunda acepção usual."];
+
+    ctx.fillStyle = "#0f7a6b";
+    ctx.font = "800 22px Nunito, sans-serif";
+    ctx.fillText(pal.toUpperCase(), x + 25, y + 34);
+
+    ctx.fillStyle = "#64748b";
+    ctx.font = "600 16px Nunito, sans-serif";
+    ctx.fillText("[" + sep + "]  •  " + cls, x + 35 + ctx.measureText(pal.toUpperCase()).width + 10, y + 33);
+
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "400 17px Nunito, sans-serif";
+    defs.forEach((d, di)=>{
+      ctx.fillText((di + 1) + ". " + String(d).slice(0, 95), x + 30, y + 64 + di * 26);
+    });
+
+    return y + hBox + 26;
+  }
+
+  if(tipo === "linha_do_tempo"){
+    const hBox = 100;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const marcos = fig.marcos && fig.marcos.length ? fig.marcos.slice(0, 4) : [
+      {ano: "1500", evento: "Chegada dos Portugueses"},
+      {ano: "1808", evento: "Chegada da Família Real"},
+      {ano: "1822", evento: "Independência do Brasil"},
+      {ano: "1889", evento: "Proclamação da República"}
+    ];
+    const n = marcos.length;
+    const margemX = 80;
+    const linhaW = larg - 2 * margemX;
+    const linhaY = y + 48;
+
+    ctx.strokeStyle = "#0f7a6b";
+    ctx.lineWidth = 3;
+    linha(ctx, x + margemX, linhaY, x + margemX + linhaW, linhaY);
+
+    ctx.fillStyle = "#0f7a6b";
+    ctx.beginPath();
+    ctx.moveTo(x + margemX + linhaW, linhaY);
+    ctx.lineTo(x + margemX + linhaW - 10, linhaY - 6);
+    ctx.lineTo(x + margemX + linhaW - 10, linhaY + 6);
+    ctx.closePath(); ctx.fill();
+
+    const stepW = linhaW / (n > 1 ? n - 1 : 1);
+    marcos.forEach((m, idx)=>{
+      const px = x + margemX + (n > 1 ? idx * stepW : linhaW / 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath(); ctx.arc(px, linhaY, 7, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = "#e4572e"; ctx.lineWidth = 3; ctx.stroke();
+
+      ctx.fillStyle = "#0f7a6b";
+      ctx.font = "800 16px Nunito, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(String(m.ano), px, linhaY - 14);
+
+      ctx.fillStyle = "#334155";
+      ctx.font = "700 13px Nunito, sans-serif";
+      ctx.fillText(String(m.evento).slice(0, 22), px, linhaY + 24);
+    });
+
+    ctx.textAlign = "left";
+    return y + hBox + 26;
+  }
+
+  if(tipo === "ficha_fonte"){
+    const hBox = 110;
+    ctx.fillStyle = "#fefdfa";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#d6cfc4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const tipoF = String(fig.tipoFonte || "Documento Histórico Escrito");
+    const epoc = String(fig.epocaFonte || "Século XIX");
+    const aut = String(fig.autorFonte || "Registro Oficial");
+    const trec = String(fig.trechoFonte || "Trecho transcrito para interpretação histórica do estudante.");
+
+    ctx.fillStyle = "#0a5a4f";
+    ctx.fillRect(x, y, larg, 30);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "800 14px Nunito, sans-serif";
+    ctx.fillText("FONTE HISTÓRICA: " + tipoF.toUpperCase() + "  |  ÉPOCA: " + epoc, x + 16, y + 20);
+
+    ctx.fillStyle = "#1e293b";
+    ctx.font = "italic 16px Georgia, serif";
+    ctx.fillText("“" + trec.slice(0, 95) + "”", x + 24, y + 60);
+
+    ctx.fillStyle = "#64748b";
+    ctx.font = "700 14px Nunito, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("— Autor / Origem: " + aut, x + larg - 24, y + 92);
+
+    ctx.textAlign = "left";
+    return y + hBox + 26;
+  }
+
+  if(tipo === "ciclo_esquema"){
+    const hBox = 110;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const etapas = fig.etapas && fig.etapas.length ? fig.etapas.slice(0, 4) : ["Evaporação", "Condensação", "Precipitação", "Infiltração"];
+    const n = etapas.length;
+    const boxW = Math.min((larg - 100 - (n - 1) * 35) / n, 200);
+    const boxH = 46;
+    const boxY = y + 36;
+    const totalW = n * boxW + (n - 1) * 35;
+    const startX = x + (larg - totalW) / 2;
+
+    if(fig.tituloEsquema){
+      ctx.fillStyle = "#0f7a6b"; ctx.font = "800 14px Nunito, sans-serif";
+      ctx.fillText("PROCESSO CÍCLICO: " + fig.tituloEsquema.toUpperCase(), x + 18, y + 22);
+    }
+
+    etapas.forEach((et, i)=>{
+      const bx = startX + i * (boxW + 35);
+      ctx.fillStyle = "#f0f9ff"; ctx.fillRect(bx, boxY, boxW, boxH);
+      ctx.strokeStyle = "#0284c7"; ctx.lineWidth = 1.5; ctx.strokeRect(bx, boxY, boxW, boxH);
+
+      ctx.fillStyle = "#0369a1"; ctx.font = "700 14px Nunito, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(String(et).slice(0, 18), bx + boxW / 2, boxY + 28);
+
+      if(i < n - 1){
+        const ax = bx + boxW + 6;
+        ctx.strokeStyle = "#0284c7"; ctx.lineWidth = 2;
+        linha(ctx, ax, boxY + 23, ax + 22, boxY + 23);
+        ctx.fillStyle = "#0284c7";
+        ctx.beginPath(); ctx.moveTo(ax + 22, boxY + 23); ctx.lineTo(ax + 16, boxY + 19); ctx.lineTo(ax + 16, boxY + 27); ctx.closePath(); ctx.fill();
+      }
+    });
+
+    ctx.textAlign = "left";
+    return y + hBox + 26;
+  }
+
+  if(tipo === "circulo_cromatico"){
+    const hBox = 110;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const centroX = x + larg / 2;
+    const cY = y + 55;
+    const r = 32;
+
+    ctx.fillStyle = "rgba(37, 99, 235, 0.85)";
+    ctx.beginPath(); ctx.arc(centroX - 90, cY, r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.font = "800 13px Nunito, sans-serif"; ctx.textAlign = "center";
+    ctx.fillText("Azul", centroX - 90, cY + 5);
+
+    ctx.fillStyle = "#20303a"; ctx.font = "800 24px Nunito, sans-serif";
+    ctx.fillText("+", centroX - 45, cY + 8);
+
+    ctx.fillStyle = "rgba(234, 179, 8, 0.9)";
+    ctx.beginPath(); ctx.arc(centroX, cY, r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#20303a"; ctx.font = "800 13px Nunito, sans-serif";
+    ctx.fillText("Amarelo", centroX, cY + 5);
+
+    ctx.fillStyle = "#20303a"; ctx.font = "800 24px Nunito, sans-serif";
+    ctx.fillText("=", centroX + 45, cY + 8);
+
+    ctx.fillStyle = "rgba(16, 185, 129, 0.95)";
+    ctx.beginPath(); ctx.arc(centroX + 90, cY, r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.font = "800 13px Nunito, sans-serif";
+    ctx.fillText("Verde", centroX + 90, cY + 5);
+
+    if(fig.legenda || fig.misturaCores){
+      ctx.fillStyle = "#0f7a6b"; ctx.font = "700 14px Nunito, sans-serif";
+      ctx.fillText(fig.legenda || fig.misturaCores, centroX, y + hBox - 8);
+    }
+
+    ctx.textAlign = "left";
+    return y + hBox + 26;
+  }
+
+  if(tipo === "quadro_reflexivo"){
+    const hBox = 110;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const cAW = (larg - 60) / 2;
+    const c1 = String(fig.colunaA || "Ação / Situação");
+    const t1 = String(fig.textoA || "Situação para reflexão ética e cidadã");
+    const c2 = String(fig.colunaB || "Impacto / Consequência");
+    const t2 = String(fig.textoB || "Impacto no coletivo ou direito correspondente");
+
+    ctx.fillStyle = "#f0fdf4"; ctx.fillRect(x + 20, y + 15, cAW, 80);
+    ctx.strokeStyle = "#0f7a6b"; ctx.lineWidth = 1.5; ctx.strokeRect(x + 20, y + 15, cAW, 80);
+    ctx.fillStyle = "#0f7a6b"; ctx.font = "800 15px Nunito, sans-serif";
+    ctx.fillText(c1.toUpperCase(), x + 32, y + 38);
+    ctx.fillStyle = "#1e293b"; ctx.font = "600 15px Nunito, sans-serif";
+    ctx.fillText(t1.slice(0, 45), x + 32, y + 68);
+
+    ctx.fillStyle = "#fff7ed"; ctx.fillRect(x + 30 + cAW, y + 15, cAW, 80);
+    ctx.strokeStyle = "#ea580c"; ctx.lineWidth = 1.5; ctx.strokeRect(x + 30 + cAW, y + 15, cAW, 80);
+    ctx.fillStyle = "#c2410c"; ctx.font = "800 15px Nunito, sans-serif";
+    ctx.fillText(c2.toUpperCase(), x + 42 + cAW, y + 38);
+    ctx.fillStyle = "#1e293b"; ctx.font = "600 15px Nunito, sans-serif";
+    ctx.fillText(t2.slice(0, 45), x + 42 + cAW, y + 68);
+
+    return y + hBox + 26;
+  }
+
   return y;
 }
 
@@ -1528,6 +1987,15 @@ function desenhar(a){
       else if(q.figura.tipo === "mini_grafico") hFigura = 161;
       else if(q.figura.tipo === "rosa_dos_ventos") hFigura = 171;
       else if(q.figura.tipo === "cadeia_alimentar") hFigura = 121;
+      else if(q.figura.tipo === "fracao_visual") hFigura = 146;
+      else if(q.figura.tipo === "balanca_medicao") hFigura = 136;
+      else if(q.figura.tipo === "baloes_dialogo") hFigura = 156;
+      else if(q.figura.tipo === "verbete_dicionario") hFigura = 141;
+      else if(q.figura.tipo === "linha_do_tempo") hFigura = 126;
+      else if(q.figura.tipo === "ficha_fonte") hFigura = 136;
+      else if(q.figura.tipo === "ciclo_esquema") hFigura = 136;
+      else if(q.figura.tipo === "circulo_cromatico") hFigura = 136;
+      else if(q.figura.tipo === "quadro_reflexivo") hFigura = 136;
     }
 
     const altura = en.length*34 + 12 + hFigura + alts.reduce((s,l)=>s+l.length*32,0) + 30;
