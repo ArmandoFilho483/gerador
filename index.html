@@ -602,48 +602,50 @@ async function gerar(nome, conteudo){
   btnBaixar.disabled=true; btnRefazer.disabled=true; elPrev.innerHTML="";
   msg("Criando uma atividade aprofundada sobre “" + conteudo + "”…");
 
-  // DIRETRIZES PEDAGÓGICAS ESPECÍFICAS POR DISCIPLINA
+  // DIRETRIZES PEDAGÓGICAS ESPECÍFICAS POR DISCIPLINA COM ALTA DIVERSIDADE DE RECURSOS
   let diretrizDisciplina = "";
   const ehGraficosTabelas = conteudo.toLowerCase().includes("gráfico") || conteudo.toLowerCase().includes("tabela") || conteudo.toLowerCase().includes("estatística");
 
   if(nome === "Matemática"){
-    if(ehGraficosTabelas){
-      diretrizDisciplina = `ESPECÍFICO DE MATEMÁTICA (GRÁFICOS E TABELAS):
-- Você DEVE obrigatoriamente preencher os campos estruturados 'grafico' e 'tabela' no JSON.
-- No 'grafico': forneça título claro e entre 4 e 6 itens no array 'dados', cada um com 'rotulo' (nome da categoria, ex: 'Futebol', 'Vôlei') e 'valor' (número inteiro de 5 a 100).
-- No 'tabela': forneça 'titulo', array 'colunas' (ex: ["Item", "Quantidade", "Valor"]) e array 'linhas' (matriz com dados reais).
-- Pelo menos 4 das 10 questões devem exigir leitura e interpretação direta dos dados numéricos do gráfico ou da tabela fornecida.`;
-    } else {
-      diretrizDisciplina = `ESPECÍFICO DE MATEMÁTICA:
-- Traga problemas com situações do cotidiano, cálculos claros e precisos.
-- Se relevante para o conteúdo, você pode incluir uma 'tabela' com dados para resolução dos problemas.`;
-    }
+    diretrizDisciplina = `ESPECÍFICO DE MATEMÁTICA:
+- Priorize a inclusão SIMULTÂNEA de 'grafico' e 'tabela' para enriquecer os dados dos problemas.
+- No 'grafico': forneça título e de 4 a 6 dados com 'rotulo' e 'valor' (inteiro).
+- Na 'tabela': forneça 'titulo', 'colunas' e 'linhas' com valores claros.
+- As questões devem cobrar a análise comparativa entre as informações do texto, da tabela e do gráfico.`;
   } else if(nome === "Português"){
     diretrizDisciplina = `ESPECÍFICO DE LÍNGUA PORTUGUESA:
-- O 'textoApoio' deve conter um texto literário ou informativo completo (crônica, conto curto, poema com estrofes ou notícia com manchete e lide).
-- As questões devem contemplar: localização de informações explícitas, inferência de sentido, identificação do tema e aspectos gramaticais/ortográficos do ano.`;
+- O 'textoApoio' deve conter um texto literário ou informativo completo (conto, crônica, poema, fábula ou reportagem).
+- Inclua também uma 'tabela' organizando elementos do texto (ex: personagens e características, glossário, ou comparação de gêneros textuais).
+- Se aplicável, inclua um 'grafico' (ex: pesquisa de leitura ou temas mais votados).`;
   } else if(nome === "Inglês"){
     diretrizDisciplina = `ESPECÍFICO DE LÍNGUA INGLESA:
-- O texto de apoio e os enunciados devem ser bilíngues e contextualizados, apresentando um 'Word Bank' (vocabulário temático) útil para a série.
-- As questões devem testar vocabulário prático, saudações, comandos, rotinas e frases simples em inglês.`;
+- O 'textoApoio' deve conter diálogo ou texto temático contextualizado com vocabulário da série.
+- Inclua uma 'tabela' funcionando como 'Word Bank' ou guia visual comparativo (ex: English / Português / Exemplo).
+- Inclua um 'grafico' temático ilustrando uma pesquisa simples da turma (ex: Favorite Colors, Favorite Pets).`;
   } else if(nome === "História"){
     diretrizDisciplina = `ESPECÍFICO DE HISTÓRIA:
-- O texto de apoio deve trazer marcos temporais, contextualização de fontes históricas, memórias e o protagonismo dos povos originários e afro-brasileiros.
-- Se adequado, organize os marcos temporais em uma 'tabela' cronológica de eventos.`;
+- O texto de apoio deve contextualizar acontecimentos históricos, marcos temporais e protagonismo social.
+- Inclua uma 'tabela' cronológica de eventos/fatos históricos com colunas como [Ano/Época, Acontecimento, Impacto].
+- Se pertinente, traga um 'grafico' comparativo histórico ou demográfico.`;
   } else if(nome === "Geografia"){
     diretrizDisciplina = `ESPECÍFICO DE GEOGRAFIA:
-- Apresente dados geográficos precisos sobre paisagens, regiões brasileiras, clima, relevo ou urbanização.
-- Se adequado, inclua uma 'tabela' com dados comparativos de regiões, população ou recursos naturais.`;
+- Apresente dados geográficos precisos sobre regiões brasileiras, clima, relevo, população ou biomas.
+- Inclua uma 'tabela' com dados comparativos (ex: Região, Clima, Características ou População).
+- Inclua um 'grafico' com dados numéricos reais ou proporcionais sobre a temática abordada.`;
   } else if(nome === "Ciências"){
     diretrizDisciplina = `ESPECÍFICO DE CIÊNCIAS:
-- Traga conceitos científicos explicados com clareza para a faixa etária (ecossistemas, transformações da matéria, corpo humano, ciclo da água).
-- Se adequado, inclua uma 'tabela' comparativa de características, seres vivos ou sistemas.`;
+- Traga conceitos científicos bem explicados (ciclo da água, sistemas do corpo, seres vivos, ecologia).
+- Inclua uma 'tabela' comparativa detalhando características de elementos, órgãos ou animais.
+- Inclua um 'grafico' com dados científicos apropriados para a série (ex: consumo de água, temperatura, tempo de decomposição).`;
   } else if(nome === "Arte"){
     diretrizDisciplina = `ESPECÍFICO DE ARTE:
-- Explore elementos das linguagens artísticas: cores (primárias, secundárias), linhas, formas, texturas, patrimônio cultural brasileiro, música e teatro.`;
+- Explore elementos de linguagens visuais, cores primárias/secundárias, técnicas e manifestações culturais.
+- Inclua uma 'tabela' com estilos, artistas e características artísticas.
+- Inclua um 'grafico' comparativo de preferências de técnicas ou manifestações artísticas populares.`;
   } else {
     diretrizDisciplina = `ESPECÍFICO DE ${nome.toUpperCase()}:
-- Aborde situações práticas, regras de convivência, ética, cidadania ou práticas corporais e cooperação.`;
+- Aborde regras de convivência, cidadania, esportes ou práticas corporais saudáveis.
+- Inclua uma 'tabela' informativa e, quando possível, um 'grafico' comparativo de dados da disciplina.`;
   }
 
   // DIRETRIZES DE CALIBRAÇÃO PEDAGÓGICA POR NÍVEL ESCOLAR (4º vs 5º ANO)
@@ -675,7 +677,9 @@ Regras pedagógicas obrigatórias:
 - Dê um título específico, evitando títulos genéricos.
 - Inclua 2 ou 3 objetivos de aprendizagem observáveis, perfeitamente adequados às habilidades da BNCC do ${turmaSel}.
 - Respeite rigorosamente o nível cognitivo e os limites matemáticos estipulados para o ${turmaSel}.
+- ALTA RIQUEZA DE RECURSOS: Forneça sempre o texto de apoio ('textoApoio'), uma tabela estruturada ('tabela') e um gráfico de colunas ('grafico') para enriquecer a experiência visual e interpretativa do aluno.
 - Exatamente 10 questões de múltipla escolha com 4 alternativas cada (A, B, C, D).
+- Distribua as questões integrando a leitura do texto, a análise da tabela e a interpretação do gráfico.
 - Apenas uma alternativa correta por questão, com distribuição equilibrada das alternativas corretas (A, B, C, D).
 - Distribuição equilibrada: 3 fáceis (compreensão direta), 4 médias (aplicação prática) e 3 que estimulem o raciocínio analítico adequado à idade.
 Responda somente em formato JSON rigoroso.`;
