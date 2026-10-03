@@ -203,12 +203,12 @@
    ============================================================ */
 const CHAVE_FIXA = ""; // opcional: coloque aqui sua chave do Gemini
 const MODELO = "gemini-2.5-flash";
-const MODELOS_RESERVA = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+const MODELOS_RESERVA = ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.5-flash-lite", "gemini-1.5-pro"];
 const TENTATIVAS_MAX = 5;
 const espera = ms => new Promise(r => setTimeout(r, ms));
 
 /* Chama o Gemini com novas tentativas automaticas quando ele responde
-   503 (sobrecarga), 429 (limite de uso) ou outro erro temporario 5xx. */
+   503 (sobrecarga), 429 (limite de uso), 404 (modelo indisponivel) ou outro erro temporario 5xx. */
 async function chamarGemini(apiKey, corpo, aviso){
   let ultimoErro = null;
   for(let tentativa = 1; tentativa <= TENTATIVAS_MAX; tentativa++){
@@ -222,16 +222,16 @@ async function chamarGemini(apiKey, corpo, aviso){
       if(resp.status === 400 || resp.status === 401 || resp.status === 403){
         throw new Error("Chave invalida ou sem permissao para a API do Gemini.");
       }
-      const temporario = resp.status === 429 || resp.status >= 500;
+      const temporario = resp.status === 429 || resp.status >= 500 || resp.status === 404;
       if(temporario && tentativa < TENTATIVAS_MAX){
-        ultimoErro = new Error("Falha temporaria da IA (" + resp.status + ").");
-        if(aviso) aviso("A IA esta com muita demanda agora. Nova tentativa automatica (" + (tentativa + 1) + " de " + TENTATIVAS_MAX + ")...");
+        ultimoErro = new Error("Falha na chamada da IA (" + resp.status + ").");
+        if(aviso) aviso("Alternando modelo ou aguardando resposta da IA (" + (tentativa + 1) + " de " + TENTATIVAS_MAX + ")...");
         await espera(Math.min(1200 * Math.pow(2, tentativa - 1), 12000) + Math.round(Math.random() * 600));
         continue;
       }
       throw new Error("Falha na IA (" + resp.status + "). " + txtErro.slice(0, 120));
     }catch(e){
-      if(e instanceof TypeError && tentativa < TENTATIVAS_MAX){
+      if((e instanceof TypeError || e.message?.includes("Falha na chamada")) && tentativa < TENTATIVAS_MAX){
         ultimoErro = e;
         if(aviso) aviso("Conexao instavel. Nova tentativa automatica (" + (tentativa + 1) + " de " + TENTATIVAS_MAX + ")...");
         await espera(1500 * tentativa);
