@@ -690,6 +690,11 @@ async function gerar(nome, conteudo){
 - Questões: Exigem inferência, cálculo de diferença entre totais, análise de tabelas compostas e justificativa de raciocínio lógico.`;
   }
 
+  const exigeGrafico = ["Matemática", "Geografia", "Ciências"].includes(nome) || ehGraficosTabelas;
+  const diretrizRecursoGeral = exigeGrafico
+    ? `- ALTA RIQUEZA DE RECURSOS: Forneça sempre o texto de apoio ('textoApoio'), uma tabela estruturada ('tabela') e um gráfico de colunas ('grafico') para enriquecer a experiência visual e interpretativa do aluno.`
+    : `- RIQUEZA E ADEQUAÇÃO DE RECURSOS: Forneça sempre o texto de apoio ('textoApoio') e uma tabela estruturada ('tabela'). Inclua também 'grafico' caso haja dados numéricos pertinentes. Se o texto for literário (poema, conto ou diálogo), preserve as quebras de linha exatas com versos e estrofes.`;
+
   const prompt = `Você é professor(a) especialista no Ensino Fundamental brasileiro e na BNCC.
 Crie uma atividade avaliativa oficial de ${nome} para a turma de ${turmaSel}, dedicada exclusivamente ao conteúdo: "${conteudo}".
 
@@ -701,13 +706,24 @@ Regras pedagógicas obrigatórias:
 - Dê um título específico, evitando títulos genéricos.
 - Inclua 2 ou 3 objetivos de aprendizagem observáveis, perfeitamente adequados às habilidades da BNCC do ${turmaSel}.
 - Respeite rigorosamente o nível cognitivo e os limites matemáticos estipulados para o ${turmaSel}.
-- ALTA RIQUEZA DE RECURSOS: Forneça sempre o texto de apoio ('textoApoio'), uma tabela estruturada ('tabela') e um gráfico de colunas ('grafico') para enriquecer a experiência visual e interpretativa do aluno.
-- RECURSOS VISUAIS NAS QUESTÕES: Em Matemática, pelo menos 3 a 4 questões DEVEM conter uma 'figura' própria no JSON (como 'reta_numerica', 'relogio', 'forma_geometrica' ou 'mini_grafico') para que o aluno resolva observando o desenho. Nas demais questões sem imagem, use tipo 'nenhuma'.
+${diretrizRecursoGeral}
+- RECURSOS VISUAIS NAS QUESTÕES: Em Matemática, Ciências e Geografia, inclua 'figura' própria em 2 a 4 questões no JSON quando didático:
+  * 'reta_numerica': Para intervalos, números ou frações.
+  * 'relogio': Para medidas de tempo, horas e minutos.
+  * 'forma_geometrica': Para formas planas ou sólidos (retângulo, quadrado, triângulo, cubo, círculo).
+  * 'mini_grafico': Para leitura rápida de dados específicos da pergunta.
+  * 'rosa_dos_ventos': Para Geografia (orientação espacial, pontos cardeais N, S, L, O).
+  * 'cadeia_alimentar': Para Ciências (etapas em fluxo: Produtor ➔ Consumidor 1º ➔ Consumidor 2º).
+  Nas demais questões sem imagem, use tipo 'nenhuma'.
 - Exatamente 10 questões de múltipla escolha com 4 alternativas cada (A, B, C, D).
 - Distribua as questões integrando a leitura do texto, a análise da tabela, a interpretação do gráfico e a observação das figuras das questões.
 - Apenas uma alternativa correta por questão, com distribuição equilibrada das alternativas corretas (A, B, C, D).
 - Distribuição equilibrada: 3 fáceis (compreensão direta), 4 médias (aplicação prática) e 3 que estimulem o raciocínio analítico adequado à idade.
 Responda somente em formato JSON rigoroso.`;
+
+  const requiredRoot = exigeGrafico
+    ? ["titulo","objetivos","textoApoio","tabela","grafico","questoes"]
+    : ["titulo","objetivos","textoApoio","tabela","questoes"];
 
   const schema = {
     type:"object",
@@ -751,7 +767,7 @@ Responda somente em formato JSON rigoroso.`;
             figura:{
               type:"object",
               properties:{
-                tipo:{type:"string", enum:["nenhuma","reta_numerica","forma_geometrica","relogio","mini_grafico"]},
+                tipo:{type:"string", enum:["nenhuma","reta_numerica","forma_geometrica","relogio","mini_grafico","rosa_dos_ventos","cadeia_alimentar"]},
                 legenda:{type:"string"},
                 inicio:{type:"number"},
                 fim:{type:"number"},
@@ -764,7 +780,9 @@ Responda somente em formato JSON rigoroso.`;
                 horas:{type:"number"},
                 minutos:{type:"number"},
                 rotulos:{type:"array", items:{type:"string"}},
-                valores:{type:"array", items:{type:"number"}}
+                valores:{type:"array", items:{type:"number"}},
+                direcaoDestaque:{type:"string"},
+                etapas:{type:"array", items:{type:"string"}}
               },
               required:["tipo"]
             },
@@ -775,7 +793,7 @@ Responda somente em formato JSON rigoroso.`;
         }
       }
     },
-    required:["titulo","objetivos","textoApoio","tabela","grafico","questoes"]
+    required: requiredRoot
   };
 
   try{
@@ -868,14 +886,27 @@ function cabecalho(ctx, a, pag, total, semNome){
 function linha(ctx,x1,y1,x2,y2){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
 
 function quebrar(ctx, texto, largura){
-  const palavras = texto.split(/\s+/); const linhas=[]; let atual="";
-  palavras.forEach(p=>{
-    const t = atual ? atual+" "+p : p;
-    if(ctx.measureText(t).width > largura && atual){ linhas.push(atual); atual=p; }
-    else atual=t;
+  const linhasTexto = String(texto || "").split(/\r?\n/);
+  const resultado = [];
+  linhasTexto.forEach(linhaT => {
+    const palavras = linhaT.trim().split(/\s+/).filter(Boolean);
+    if(!palavras.length){
+      resultado.push("");
+      return;
+    }
+    let atual = "";
+    palavras.forEach(p => {
+      const t = atual ? atual + " " + p : p;
+      if(ctx.measureText(t).width > largura && atual){
+        resultado.push(atual);
+        atual = p;
+      } else {
+        atual = t;
+      }
+    });
+    if(atual) resultado.push(atual);
   });
-  if(atual) linhas.push(atual);
-  return linhas;
+  return resultado;
 }
 
 
@@ -1090,7 +1121,7 @@ function desenharFiguraQuestao(ctx, fig, x, y, larg){
     ctx.fillText(rotuloDestaque, posDestX, retaY - 14);
 
     ctx.textAlign = "left";
-    return y + hBox + 12;
+    return y + hBox + 26;
   }
 
   if(tipo === "relogio"){
@@ -1154,7 +1185,7 @@ function desenharFiguraQuestao(ctx, fig, x, y, larg){
 
     ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
-    return y + hBox + 12;
+    return y + hBox + 26;
   }
 
   if(tipo === "forma_geometrica"){
@@ -1214,7 +1245,7 @@ function desenharFiguraQuestao(ctx, fig, x, y, larg){
       ctx.textAlign = "left";
     }
 
-    return y + hBox + 12;
+    return y + hBox + 26;
   }
 
   if(tipo === "mini_grafico" && fig.rotulos && fig.valores && fig.rotulos.length){
@@ -1256,7 +1287,154 @@ function desenharFiguraQuestao(ctx, fig, x, y, larg){
     });
 
     ctx.textAlign = "left";
-    return y + hBox + 12;
+    return y + hBox + 26;
+  }
+
+  if(tipo === "rosa_dos_ventos"){
+    const hBox = 145;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const centroX = x + larg / 2;
+    const centroY = y + 72;
+    const raio = 50;
+
+    // Círculo base da bússola
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(centroX, centroY, raio, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Cruz de eixos N-S e L-O
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 1;
+    linha(ctx, centroX, centroY - raio - 6, centroX, centroY + raio + 6);
+    linha(ctx, centroX - raio - 6, centroY, centroX + raio + 6, centroY);
+
+    // Pontas da Rosa dos Ventos
+    // Norte (Verde escuro destacado)
+    ctx.fillStyle = "#0f7a6b";
+    ctx.beginPath();
+    ctx.moveTo(centroX, centroY);
+    ctx.lineTo(centroX - 8, centroY - 12);
+    ctx.lineTo(centroX, centroY - raio);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = "#14b8a6";
+    ctx.beginPath();
+    ctx.moveTo(centroX, centroY);
+    ctx.lineTo(centroX + 8, centroY - 12);
+    ctx.lineTo(centroX, centroY - raio);
+    ctx.closePath(); ctx.fill();
+
+    // Sul (Laranja)
+    ctx.fillStyle = "#e4572e";
+    ctx.beginPath();
+    ctx.moveTo(centroX, centroY);
+    ctx.lineTo(centroX - 8, centroY + 12);
+    ctx.lineTo(centroX, centroY + raio);
+    ctx.closePath(); ctx.fill();
+
+    ctx.fillStyle = "#f97316";
+    ctx.beginPath();
+    ctx.moveTo(centroX, centroY);
+    ctx.lineTo(centroX + 8, centroY + 12);
+    ctx.lineTo(centroX, centroY + raio);
+    ctx.closePath(); ctx.fill();
+
+    // Leste
+    ctx.fillStyle = "#e4572e";
+    ctx.beginPath();
+    ctx.moveTo(centroX, centroY);
+    ctx.lineTo(centroX + 12, centroY - 8);
+    ctx.lineTo(centroX + raio, centroY);
+    ctx.closePath(); ctx.fill();
+
+    // Oeste
+    ctx.fillStyle = "#e4572e";
+    ctx.beginPath();
+    ctx.moveTo(centroX, centroY);
+    ctx.lineTo(centroX - 12, centroY - 8);
+    ctx.lineTo(centroX - raio, centroY);
+    ctx.closePath(); ctx.fill();
+
+    // Rótulos N, S, L, O
+    ctx.font = "800 16px Nunito, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0f7a6b";
+    ctx.fillText("N", centroX, centroY - raio - 14);
+    ctx.fillStyle = "#20303a";
+    ctx.fillText("S", centroX, centroY + raio + 14);
+    ctx.fillText("L", centroX + raio + 14, centroY);
+    ctx.fillText("O", centroX - raio - 14, centroY);
+
+    if(fig.direcaoDestaque || fig.legenda){
+      ctx.fillStyle = "#0f7a6b";
+      ctx.font = "700 14px Nunito, sans-serif";
+      ctx.fillText(fig.direcaoDestaque ? "Destaque: " + fig.direcaoDestaque : fig.legenda, centroX, y + hBox - 10);
+    }
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    return y + hBox + 26;
+  }
+
+  if(tipo === "cadeia_alimentar"){
+    const hBox = 95;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const etapas = fig.etapas && fig.etapas.length ? fig.etapas.slice(0, 4) : ["Produtor", "Consumidor 1º", "Consumidor 2º", "Decompositor"];
+    const n = etapas.length;
+    const boxW = Math.min((larg - 80 - (n - 1) * 45) / n, 210);
+    const boxH = 46;
+    const boxY = y + (hBox - boxH) / 2;
+    const totalW = n * boxW + (n - 1) * 45;
+    const startX = x + (larg - totalW) / 2;
+
+    etapas.forEach((etapa, idx) => {
+      const bx = startX + idx * (boxW + 45);
+      ctx.fillStyle = idx === 0 ? "#ecfdf5" : "#f0f9ff";
+      ctx.fillRect(bx, boxY, boxW, boxH);
+      ctx.strokeStyle = idx === 0 ? "#0f7a6b" : "#0284c7";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(bx, boxY, boxW, boxH);
+
+      ctx.fillStyle = "#1e293b";
+      ctx.font = "700 14px Nunito, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(etapa).slice(0, 20), bx + boxW / 2, boxY + boxH / 2);
+
+      if(idx < n - 1){
+        const arrowStartX = bx + boxW + 8;
+        const arrowEndX = arrowStartX + 28;
+        const arrowY = boxY + boxH / 2;
+        ctx.strokeStyle = "#e4572e";
+        ctx.lineWidth = 2.5;
+        linha(ctx, arrowStartX, arrowY, arrowEndX, arrowY);
+
+        ctx.fillStyle = "#e4572e";
+        ctx.beginPath();
+        ctx.moveTo(arrowEndX, arrowY);
+        ctx.lineTo(arrowEndX - 6, arrowY - 5);
+        ctx.lineTo(arrowEndX - 6, arrowY + 5);
+        ctx.closePath();
+        ctx.fill();
+      }
+    });
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    return y + hBox + 26;
   }
 
   return y;
@@ -1344,10 +1522,12 @@ function desenhar(a){
 
     let hFigura = 0;
     if(q.figura){
-      if(q.figura.tipo === "reta_numerica") hFigura = 102;
-      else if(q.figura.tipo === "relogio") hFigura = 157;
-      else if(q.figura.tipo === "forma_geometrica") hFigura = 147;
-      else if(q.figura.tipo === "mini_grafico") hFigura = 147;
+      if(q.figura.tipo === "reta_numerica") hFigura = 116;
+      else if(q.figura.tipo === "relogio") hFigura = 171;
+      else if(q.figura.tipo === "forma_geometrica") hFigura = 161;
+      else if(q.figura.tipo === "mini_grafico") hFigura = 161;
+      else if(q.figura.tipo === "rosa_dos_ventos") hFigura = 171;
+      else if(q.figura.tipo === "cadeia_alimentar") hFigura = 121;
     }
 
     const altura = en.length*34 + 12 + hFigura + alts.reduce((s,l)=>s+l.length*32,0) + 30;
@@ -1374,7 +1554,7 @@ function desenhar(a){
       b.en.forEach(l=>{ ctx.fillText(l, M, y); y+=34; });
       y+=10;
 
-      // Renderiza a figura da questão se presente
+      // Renderiza a figura da questão com margem inferior calibrada anti-colisão
       if(b.figura && b.hFigura > 0){
         y = desenharFiguraQuestao(ctx, b.figura, M, y, W-2*M);
       }
@@ -1394,26 +1574,57 @@ function desenhar(a){
     canvases.push(c);
   });
 
-  // GABARITO OFICIAL
+  // FOLHA DO PROFESSOR (GABARITO E PAINEL DE REGISTRO PEDAGÓGICO)
   const c=novaPagina(); const ctx=c.getContext("2d");
   let y=cabecalho(ctx,a,total,total,true);
   ctx.fillStyle="#e4572e"; ctx.fillRect(M,y-30,W-2*M,58);
   ctx.fillStyle="#ffffff"; ctx.font="800 30px Nunito, sans-serif";
-  ctx.fillText("GABARITO OFICIAL", M+22, y+9);
-  y+=96;
+  ctx.fillText("FOLHA DO PROFESSOR · GABARITO OFICIAL", M+22, y+9);
+  y+=80;
   const colW=(W-2*M)/2;
   a.questoes.forEach((q,i)=>{
     const col=i%2, row=Math.floor(i/2);
-    const x=M+col*colW, yy=y+row*70;
-    ctx.fillStyle="#f4efe4"; ctx.fillRect(x, yy-34, colW-30, 54);
-    ctx.fillStyle="#20303a"; ctx.font="700 26px Nunito, sans-serif";
-    ctx.fillText("Questão " + (i+1), x+18, yy+2);
-    ctx.fillStyle="#0f7a6b"; ctx.beginPath(); ctx.arc(x+colW-70, yy-7, 21, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle="#ffffff"; ctx.font="800 24px Nunito, sans-serif"; ctx.textAlign="center";
-    ctx.fillText(q.correta, x+colW-70, yy+2); ctx.textAlign="left";
+    const x=M+col*colW, yy=y+row*68;
+    ctx.fillStyle="#f8fafc"; ctx.fillRect(x, yy-32, colW-24, 52);
+    ctx.strokeStyle="#e2e8f0"; ctx.lineWidth=1; ctx.strokeRect(x, yy-32, colW-24, 52);
+    ctx.fillStyle="#20303a"; ctx.font="700 24px Nunito, sans-serif";
+    ctx.fillText("Questão " + (i+1), x+18, yy+4);
+    ctx.fillStyle="#0f7a6b"; ctx.beginPath(); ctx.arc(x+colW-65, yy-6, 19, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle="#ffffff"; ctx.font="800 22px Nunito, sans-serif"; ctx.textAlign="center";
+    ctx.fillText(q.correta, x+colW-65, yy+2); ctx.textAlign="left";
   });
-  ctx.fillStyle="#6d7f89"; ctx.font="400 20px Nunito, sans-serif";
-  ctx.fillText("Atividade gerada por inteligência artificial — revise antes de aplicar.", M, H-90);
+  y += 5 * 68 + 40;
+
+  // Painel de Registro Pedagógico da Turma (Preenche a folha com alto valor didático)
+  ctx.fillStyle="#0f7a6b"; ctx.fillRect(M, y, W-2*M, 44);
+  ctx.fillStyle="#ffffff"; ctx.font="800 22px Nunito, sans-serif";
+  ctx.fillText("REGISTRO DE DESEMPENHO E INTERVENÇÃO PEDAGÓGICA (BNCC)", M+18, y+30);
+  y += 44;
+
+  ctx.fillStyle="#fdfbf7"; ctx.fillRect(M, y, W-2*M, 320);
+  ctx.strokeStyle="#d6cfc4"; ctx.lineWidth=1.5; ctx.strokeRect(M, y, W-2*M, 320);
+
+  ctx.font="700 18px Nunito, sans-serif"; ctx.fillStyle="#20303a";
+  ctx.fillText("Disciplina / Conteúdo: " + a.disciplina + " — " + a.conteudo, M+24, y+36);
+  ctx.fillText("Turma: " + a.turma, M+24, y+68);
+  ctx.fillText("Total de Alunos Avaliados: ______", M+24, y+100);
+  ctx.fillText("Média de Acertos da Turma: ______ / 10", M+450, y+100);
+
+  ctx.font="700 18px Nunito, sans-serif"; ctx.fillStyle="#0a5a4f";
+  ctx.fillText("Habilidades e Objetivos Trabalhados:", M+24, y+140);
+  ctx.font="600 16px Nunito, sans-serif"; ctx.fillStyle="#334155";
+  (a.objetivos||[]).slice(0, 2).forEach((obj, oi)=>{
+    ctx.fillText("• " + obj.slice(0, 95), M+36, y+168 + oi*26);
+  });
+
+  ctx.font="700 18px Nunito, sans-serif"; ctx.fillStyle="#e4572e";
+  ctx.fillText("Anotações para Recuperação Paralela e Retomada de Conteúdo:", M+24, y+230);
+  ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1;
+  linha(ctx, M+24, y+265, W-M-24, y+265);
+  linha(ctx, M+24, y+298, W-M-24, y+298);
+
+  ctx.fillStyle="#6d7f89"; ctx.font="400 18px Nunito, sans-serif";
+  ctx.fillText("Documento exclusivo do professor — Guarde para o conselho de classe e planejamento pedagógico.", M, H-80);
   canvases.push(c);
 
   return canvases;
