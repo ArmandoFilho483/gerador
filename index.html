@@ -581,21 +581,66 @@ async function gerar(nome, conteudo){
   btnBaixar.disabled=true; btnRefazer.disabled=true; elPrev.innerHTML="";
   msg("Criando uma atividade aprofundada sobre “" + conteudo + "”…");
 
+  // DIRETRIZES PEDAGÓGICAS ESPECÍFICAS POR DISCIPLINA
+  let diretrizDisciplina = "";
+  const ehGraficosTabelas = conteudo.toLowerCase().includes("gráfico") || conteudo.toLowerCase().includes("tabela") || conteudo.toLowerCase().includes("estatística");
+
+  if(nome === "Matemática"){
+    if(ehGraficosTabelas){
+      diretrizDisciplina = `ESPECÍFICO DE MATEMÁTICA (GRÁFICOS E TABELAS):
+- Você DEVE obrigatoriamente preencher os campos estruturados 'grafico' e 'tabela' no JSON.
+- No 'grafico': forneça título claro e entre 4 e 6 itens no array 'dados', cada um com 'rotulo' (nome da categoria, ex: 'Futebol', 'Vôlei') e 'valor' (número inteiro de 5 a 100).
+- No 'tabela': forneça 'titulo', array 'colunas' (ex: ["Item", "Quantidade", "Valor"]) e array 'linhas' (matriz com dados reais).
+- Pelo menos 4 das 10 questões devem exigir leitura e interpretação direta dos dados numéricos do gráfico ou da tabela fornecida.`;
+    } else {
+      diretrizDisciplina = `ESPECÍFICO DE MATEMÁTICA:
+- Traga problemas com situações do cotidiano, cálculos claros e precisos.
+- Se relevante para o conteúdo, você pode incluir uma 'tabela' com dados para resolução dos problemas.`;
+    }
+  } else if(nome === "Português"){
+    diretrizDisciplina = `ESPECÍFICO DE LÍNGUA PORTUGUESA:
+- O 'textoApoio' deve conter um texto literário ou informativo completo (crônica, conto curto, poema com estrofes ou notícia com manchete e lide).
+- As questões devem contemplar: localização de informações explícitas, inferência de sentido, identificação do tema e aspectos gramaticais/ortográficos do ano.`;
+  } else if(nome === "Inglês"){
+    diretrizDisciplina = `ESPECÍFICO DE LÍNGUA INGLESA:
+- O texto de apoio e os enunciados devem ser bilíngues e contextualizados, apresentando um 'Word Bank' (vocabulário temático) útil para a série.
+- As questões devem testar vocabulário prático, saudações, comandos, rotinas e frases simples em inglês.`;
+  } else if(nome === "História"){
+    diretrizDisciplina = `ESPECÍFICO DE HISTÓRIA:
+- O texto de apoio deve trazer marcos temporais, contextualização de fontes históricas, memórias e o protagonismo dos povos originários e afro-brasileiros.
+- Se adequado, organize os marcos temporais em uma 'tabela' cronológica de eventos.`;
+  } else if(nome === "Geografia"){
+    diretrizDisciplina = `ESPECÍFICO DE GEOGRAFIA:
+- Apresente dados geográficos precisos sobre paisagens, regiões brasileiras, clima, relevo ou urbanização.
+- Se adequado, inclua uma 'tabela' com dados comparativos de regiões, população ou recursos naturais.`;
+  } else if(nome === "Ciências"){
+    diretrizDisciplina = `ESPECÍFICO DE CIÊNCIAS:
+- Traga conceitos científicos explicados com clareza para a faixa etária (ecossistemas, transformações da matéria, corpo humano, ciclo da água).
+- Se adequado, inclua uma 'tabela' comparativa de características, seres vivos ou sistemas.`;
+  } else if(nome === "Arte"){
+    diretrizDisciplina = `ESPECÍFICO DE ARTE:
+- Explore elementos das linguagens artísticas: cores (primárias, secundárias), linhas, formas, texturas, patrimônio cultural brasileiro, música e teatro.`;
+  } else {
+    diretrizDisciplina = `ESPECÍFICO DE ${nome.toUpperCase()}:
+- Aborde situações práticas, regras de convivência, ética, cidadania ou práticas corporais e cooperação.`;
+  }
+
   const prompt = `Você é professor(a) especialista no Ensino Fundamental brasileiro e na BNCC.
-Crie uma atividade avaliativa de ${nome} para a turma de ${turmaSel}, dedicada exclusivamente ao conteúdo: "${conteudo}".
+Crie uma atividade avaliativa oficial de ${nome} para a turma de ${turmaSel}, dedicada exclusivamente ao conteúdo: "${conteudo}".
+
+${diretrizDisciplina}
+
 Regras obrigatórias:
 - Dê um título específico, evitando títulos genéricos.
 - Inclua 2 ou 3 objetivos de aprendizagem observáveis, adequados ao ano escolar.
-- Inclua um texto de apoio curto, explicativo ou contextual, entre 90 e 180 palavras. Em Matemática, ele pode conter dados ou uma situação-problema; em Português, deve trazer o texto necessário para interpretação; em Inglês, combine vocabulário em inglês com instruções compreensíveis em português.
+- Inclua um texto de apoio claro, explicativo ou contextualizado (90 a 180 palavras).
 - Exatamente 10 questões de múltipla escolha, numeradas implicitamente pela ordem.
 - Cada questão tem exatamente 4 alternativas, na ordem A, B, C e D.
-- Apenas uma alternativa correta por questão, variando a letra correta ao longo da prova.
+- Apenas uma alternativa correta por questão, variando equilibradamente a letra correta (A, B, C, D) ao longo da prova.
 - Distribua a dificuldade de modo progressivo: 3 questões de compreensão, 4 de aplicação e 3 de análise ou raciocínio.
 - Use situações significativas e exemplos concretos, sem exigir conteúdos de anos posteriores.
-- Evite repetição, pegadinhas, alternativas obviamente absurdas e perguntas que dependam de imagens.
-- Garanta que todas as respostas possam ser concluídas pelo texto de apoio ou pelos conhecimentos esperados da série.
 - Revise cálculos, fatos, ortografia, clareza e unicidade da alternativa correta antes de responder.
-Responda somente em português do Brasil.`;
+Responda somente em formato JSON rigoroso.`;
 
   const schema = {
     type:"object",
@@ -603,6 +648,31 @@ Responda somente em português do Brasil.`;
       titulo:{type:"string"},
       objetivos:{type:"array",items:{type:"string"}},
       textoApoio:{type:"string"},
+      tabela:{
+        type:"object",
+        properties:{
+          titulo:{type:"string"},
+          colunas:{type:"array",items:{type:"string"}},
+          linhas:{type:"array",items:{type:"array",items:{type:"string"}}}
+        }
+      },
+      grafico:{
+        type:"object",
+        properties:{
+          titulo:{type:"string"},
+          dados:{
+            type:"array",
+            items:{
+              type:"object",
+              properties:{
+                rotulo:{type:"string"},
+                valor:{type:"number"}
+              },
+              required:["rotulo","valor"]
+            }
+          }
+        }
+      },
       questoes:{
         type:"array",
         items:{
@@ -622,7 +692,7 @@ Responda somente em português do Brasil.`;
   try{
     const data = await chamarGemini(apiKey, {
       contents:[{role:"user",parts:[{text:prompt}]}],
-      generationConfig:{ temperature:1, responseMimeType:"application/json", responseSchema:schema }
+      generationConfig:{ temperature:0.7, responseMimeType:"application/json", responseSchema:schema }
     }, (aviso)=>msg(aviso));
     const txt = data?.candidates?.[0]?.content?.parts?.map(p=>p.text).join("") || "";
     const json = JSON.parse(txt);
@@ -638,7 +708,10 @@ Responda somente em português do Brasil.`;
       turma:turmaSel, disciplina:nome, conteudo,
       titulo:String(json.titulo||("Atividade de "+nome)).trim(),
       objetivos:(json.objetivos||[]).slice(0,3).map(v=>String(v).trim()).filter(Boolean),
-      textoApoio:String(json.textoApoio||"").trim(), questoes
+      textoApoio:String(json.textoApoio||"").trim(),
+      tabela: json.tabela && json.tabela.colunas && json.tabela.linhas ? json.tabela : null,
+      grafico: json.grafico && json.grafico.dados && json.grafico.dados.length ? json.grafico : null,
+      questoes
     };
     paginas = desenhar(atividade);
     elPrev.innerHTML="";
@@ -712,10 +785,159 @@ function prepararIntroducao(ctx,a){
   const conteudo=quebrar(ctx,"Conteúdo: "+a.conteudo,W-2*M-30);
   ctx.font="600 19px Nunito, sans-serif";
   const objetivos=(a.objetivos||[]).flatMap(o=>quebrar(ctx,"• "+o,W-2*M-26));
+function desenharTabela(ctx, tab, x, y, larg){
+  if(!tab || !tab.colunas || !tab.linhas || !tab.colunas.length) return y;
+  const numCols = tab.colunas.length;
+  const colW = larg / numCols;
+  const hHeader = 36;
+  const hLinha = 32;
+
+  if(tab.titulo){
+    ctx.fillStyle = "#0f7a6b";
+    ctx.font = "800 20px Nunito, sans-serif";
+    ctx.fillText("TABELA: " + tab.titulo, x, y);
+    y += 26;
+  }
+
+  // Cabeçalho da Tabela
+  ctx.fillStyle = "#0f7a6b";
+  ctx.fillRect(x, y, larg, hHeader);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "700 18px Nunito, sans-serif";
+  tab.colunas.forEach((col, i)=>{
+    ctx.fillText(String(col).slice(0, 24), x + i * colW + 10, y + 24);
+  });
+  y += hHeader;
+
+  // Linhas da Tabela
+  ctx.font = "600 18px Nunito, sans-serif";
+  tab.linhas.forEach((linha, lIdx)=>{
+    ctx.fillStyle = lIdx % 2 === 0 ? "#f9fcfb" : "#ffffff";
+    ctx.fillRect(x, y, larg, hLinha);
+    ctx.strokeStyle = "#d6e5e2";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, larg, hLinha);
+
+    ctx.fillStyle = "#20303a";
+    linha.forEach((cel, cIdx)=>{
+      ctx.fillText(String(cel).slice(0, 24), x + cIdx * colW + 10, y + 22);
+    });
+    y += hLinha;
+  });
+
+  return y + 18;
+}
+
+function desenharGrafico(ctx, g, x, y, larg){
+  if(!g || !g.dados || !g.dados.length) return y;
+  const hGrafico = 190;
+  const wGrafico = larg;
+  const margemEsq = 80;
+  const margemDir = 30;
+  const margemInf = 40;
+  const wEfetivo = wGrafico - margemEsq - margemDir;
+  const hEfetivo = hGrafico - margemInf - 25;
+
+  if(g.titulo){
+    ctx.fillStyle = "#0a5a4f";
+    ctx.font = "800 20px Nunito, sans-serif";
+    ctx.fillText("GRÁFICO: " + g.titulo, x, y);
+    y += 24;
+  }
+
+  // Fundo suave do gráfico
+  ctx.fillStyle = "#fdfbf7";
+  ctx.fillRect(x, y, wGrafico, hGrafico);
+  ctx.strokeStyle = "#e2d9c8";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x, y, wGrafico, hGrafico);
+
+  const valores = g.dados.map(d=>Number(d.valor)||0);
+  const maxVal = Math.max(...valores, 10);
+  const escalaMax = Math.ceil(maxVal * 1.15);
+
+  const origemX = x + margemEsq;
+  const origemY = y + hGrafico - margemInf;
+
+  // Eixos X e Y
+  ctx.strokeStyle = "#20303a";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(origemX, y + 15);
+  ctx.lineTo(origemX, origemY);
+  ctx.lineTo(origemX + wEfetivo, origemY);
+  ctx.stroke();
+
+  // Linhas guia horizontais e valores do eixo Y
+  ctx.font = "600 14px Nunito, sans-serif";
+  ctx.fillStyle = "#6d7f89";
+  for(let i=0; i<=4; i++){
+    const valLinha = Math.round((escalaMax / 4) * i);
+    const yPos = origemY - (hEfetivo / 4) * i;
+    ctx.strokeStyle = "#e8e1d3";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(origemX, yPos);
+    ctx.lineTo(origemX + wEfetivo, yPos);
+    ctx.stroke();
+    ctx.textAlign = "right";
+    ctx.fillText(String(valLinha), origemX - 10, yPos + 5);
+  }
+  ctx.textAlign = "left";
+
+  // Barras
+  const numBarras = g.dados.length;
+  const espacoBarra = wEfetivo / numBarras;
+  const larguraBarra = Math.min(espacoBarra * 0.65, 50);
+
+  const coresBarras = ["#0f7a6b", "#e4572e", "#f2b544", "#3b82f6", "#8b5cf6", "#10b981"];
+
+  g.dados.forEach((d, idx)=>{
+    const valor = Number(d.valor) || 0;
+    const hBarra = (valor / escalaMax) * hEfetivo;
+    const xBarra = origemX + idx * espacoBarra + (espacoBarra - larguraBarra) / 2;
+    const yBarra = origemY - hBarra;
+
+    ctx.fillStyle = coresBarras[idx % coresBarras.length];
+    ctx.fillRect(xBarra, yBarra, larguraBarra, hBarra);
+
+    // Valor acima da barra
+    ctx.font = "800 15px Nunito, sans-serif";
+    ctx.fillStyle = "#20303a";
+    ctx.textAlign = "center";
+    ctx.fillText(String(valor), xBarra + larguraBarra/2, yBarra - 6);
+
+    // Rótulo abaixo da barra
+    ctx.font = "700 13px Nunito, sans-serif";
+    ctx.fillStyle = "#334155";
+    const rotuloCurto = String(d.rotulo || "").slice(0, 10);
+    ctx.fillText(rotuloCurto, xBarra + larguraBarra/2, origemY + 20);
+  });
+  ctx.textAlign = "left";
+
+  return y + hGrafico + 20;
+}
+
+function prepararIntroducao(ctx,a){
+  ctx.font="800 32px Nunito, sans-serif";
+  const titulo=quebrar(ctx,a.titulo,W-2*M);
+  ctx.font="700 20px Nunito, sans-serif";
+  const conteudo=quebrar(ctx,"Conteúdo: "+a.conteudo,W-2*M-30);
+  ctx.font="600 19px Nunito, sans-serif";
+  const objetivos=(a.objetivos||[]).flatMap(o=>quebrar(ctx,"• "+o,W-2*M-26));
   ctx.font="400 20px Nunito, sans-serif";
   const apoio=quebrar(ctx,a.textoApoio||"",W-2*M-36);
-  const altura=titulo.length*40+conteudo.length*28+objetivos.length*27+apoio.length*29+165;
-  return {titulo,conteudo,objetivos,apoio,altura};
+  
+  let hExtra = 0;
+  if(a.tabela && a.tabela.colunas && a.tabela.linhas){
+    hExtra += 30 + 36 + a.tabela.linhas.length * 32 + 25;
+  }
+  if(a.grafico && a.grafico.dados && a.grafico.dados.length){
+    hExtra += 235;
+  }
+
+  const altura=titulo.length*40+conteudo.length*28+objetivos.length*27+apoio.length*29+165 + hExtra;
+  return {titulo,conteudo,objetivos,apoio,altura,tabela:a.tabela,grafico:a.grafico};
 }
 
 function desenharIntroducao(ctx,intro,y){
@@ -730,9 +952,21 @@ function desenharIntroducao(ctx,intro,y){
   ctx.font="600 19px Nunito, sans-serif"; ctx.fillStyle="#3a4a52";
   intro.objetivos.forEach(l=>{ctx.fillText(l,M+10,y);y+=27});
   y+=18; ctx.fillStyle="#e4572e"; ctx.font="800 19px Nunito, sans-serif";
-  ctx.fillText("LEIA E PENSE",M,y); y+=29;
+  ctx.fillText("LEIA, ANALISE E RESPONDA",M,y); y+=29;
   ctx.fillStyle="#2c3c45"; ctx.font="400 20px Nunito, sans-serif";
   intro.apoio.forEach(l=>{ctx.fillText(l,M+10,y);y+=29});
+  y+=12;
+
+  // Renderiza tabela visual se houver
+  if(intro.tabela){
+    y = desenharTabela(ctx, intro.tabela, M, y, W-2*M);
+  }
+
+  // Renderiza gráfico de barras visual se houver
+  if(intro.grafico){
+    y = desenharGrafico(ctx, intro.grafico, M, y, W-2*M);
+  }
+
   ctx.strokeStyle="#e6ddcd"; ctx.lineWidth=2; linha(ctx,M,y+12,W-M,y+12);
   return y+48;
 }
