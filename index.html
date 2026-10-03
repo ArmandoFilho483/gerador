@@ -625,21 +625,38 @@ async function gerar(nome, conteudo){
 - Aborde situações práticas, regras de convivência, ética, cidadania ou práticas corporais e cooperação.`;
   }
 
+  // DIRETRIZES DE CALIBRAÇÃO PEDAGÓGICA POR NÍVEL ESCOLAR (4º vs 5º ANO)
+  const eh4Ano = turmaSel.includes("4º");
+  let calibracaoAno = "";
+
+  if(eh4Ano){
+    calibracaoAno = `DIRETRIZ PEDAGÓGICA E LIMITES COGNITIVOS DO 4º ANO (BNCC):
+- Linguagem e Leitura: Vocabulário acessível, frases diretas e narrativas lineares. Texto de apoio com 90 a 130 palavras.
+- Matemática & Gráficos: Números até 10.000. Cálculos de adição e subtração com reagrupamento, multiplicação por 1 dígito e divisões exatas simples.
+- Em Gráficos/Tabelas: Gráficos de colunas simples com escala amigável (de 1 em 1, 5 em 5 ou 10 em 10). Dados inteiros com temas familiares (brinquedos, frutas, votos da turma). Tabelas simples de entrada única (duas colunas: Item e Quantidade).
+- Questões: Focadas em identificação direta de dados, comparações diretas de maior/menor e operações fundamentais sem pegadinhas.`;
+  } else {
+    calibracaoAno = `DIRETRIZ PEDAGÓGICA E LIMITES COGNITIVOS DO 5º ANO (BNCC - TRANSIÇÃO PARA ANOS FINAIS):
+- Linguagem e Leitura: Maior aprofundamento textual, relações de causa/efeito, pequenos textos de divulgação científica, crônicas ou notícias. Texto de apoio com 130 a 180 palavras.
+- Matemática & Gráficos: Números até centenas de milhar e milhões. Multiplicação por 2 dígitos, divisão com resto, noções de frações equivalentes, números decimais do cotidiano (R$ e medidas) e porcentagens âncora (10%, 25%, 50%).
+- Em Gráficos/Tabelas: Gráficos de barras comparativos com escalas maiores (dezenas ou centenas). Tabelas de dupla entrada (ex: Categoria x Gênero/Período) exigindo cruzamento de linhas e colunas.
+- Questões: Exigem inferência, cálculo de diferença entre totais, análise de tabelas compostas e justificativa de raciocínio lógico.`;
+  }
+
   const prompt = `Você é professor(a) especialista no Ensino Fundamental brasileiro e na BNCC.
 Crie uma atividade avaliativa oficial de ${nome} para a turma de ${turmaSel}, dedicada exclusivamente ao conteúdo: "${conteudo}".
 
+${calibracaoAno}
+
 ${diretrizDisciplina}
 
-Regras obrigatórias:
+Regras pedagógicas obrigatórias:
 - Dê um título específico, evitando títulos genéricos.
-- Inclua 2 ou 3 objetivos de aprendizagem observáveis, adequados ao ano escolar.
-- Inclua um texto de apoio claro, explicativo ou contextualizado (90 a 180 palavras).
-- Exatamente 10 questões de múltipla escolha, numeradas implicitamente pela ordem.
-- Cada questão tem exatamente 4 alternativas, na ordem A, B, C e D.
-- Apenas uma alternativa correta por questão, variando equilibradamente a letra correta (A, B, C, D) ao longo da prova.
-- Distribua a dificuldade de modo progressivo: 3 questões de compreensão, 4 de aplicação e 3 de análise ou raciocínio.
-- Use situações significativas e exemplos concretos, sem exigir conteúdos de anos posteriores.
-- Revise cálculos, fatos, ortografia, clareza e unicidade da alternativa correta antes de responder.
+- Inclua 2 ou 3 objetivos de aprendizagem observáveis, perfeitamente adequados às habilidades da BNCC do ${turmaSel}.
+- Respeite rigorosamente o nível cognitivo e os limites matemáticos estipulados para o ${turmaSel}.
+- Exatamente 10 questões de múltipla escolha com 4 alternativas cada (A, B, C, D).
+- Apenas uma alternativa correta por questão, com distribuição equilibrada das alternativas corretas (A, B, C, D).
+- Distribuição equilibrada: 3 fáceis (compreensão direta), 4 médias (aplicação prática) e 3 que estimulem o raciocínio analítico adequado à idade.
 Responda somente em formato JSON rigoroso.`;
 
   const schema = {
