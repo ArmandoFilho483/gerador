@@ -119,7 +119,18 @@ Responda em JSON rigoroso seguindo o schema requerido.`;
           const parseado = JSON.parse(textoResposta);
           const validado = AtividadeSchema.safeParse(parseado);
           if (validado.success) {
-            respostaJson = validado.data;
+            // Sanitiza alternativas para remover duplicidade de prefixos (ex: 'A) 54' -> '54')
+            const questoesLimpos = validado.data.questoes.map((q) => ({
+              ...q,
+              alternativas: q.alternativas.map((alt) =>
+                alt.replace(/^[A-Da-d][)\.\-\s]\s*/, "").trim()
+              ) as [string, string, string, string],
+            }));
+
+            respostaJson = {
+              ...validado.data,
+              questoes: questoesLimpos,
+            };
             break; // Sucesso absoluto
           } else {
             console.warn(`[GEMINI SCHEMA MISMATCH] Dados não conferem com Zod:`, validado.error);
