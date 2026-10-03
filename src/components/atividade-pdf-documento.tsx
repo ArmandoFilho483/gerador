@@ -230,6 +230,60 @@ export const AtividadeDocumentoPDF: React.FC<TemplatePDFProps> = ({ atividade })
           </View>
         )}
 
+        {/* TABELA VISUAL NO PDF */}
+        {atividade.tabela && atividade.tabela.colunas && (
+          <View style={{ marginBottom: 12, borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 4 }}>
+            {atividade.tabela.titulo && (
+              <View style={{ backgroundColor: "#0f7a6b", padding: 4 }}>
+                <Text style={{ fontSize: 8.5, fontWeight: "bold", color: "#ffffff", textAlign: "center" }}>
+                  TABELA: {atividade.tabela.titulo}
+                </Text>
+              </View>
+            )}
+            <View style={{ flexDirection: "row", backgroundColor: "#e2e8f0", borderBottomWidth: 1, borderColor: "#cbd5e1" }}>
+              {atividade.tabela.colunas.map((col, cIdx) => (
+                <Text key={cIdx} style={{ flex: 1, padding: 3, fontSize: 7.5, fontWeight: "bold", color: "#1e293b", textAlign: "center" }}>
+                  {col}
+                </Text>
+              ))}
+            </View>
+            {atividade.tabela.linhas.map((row, rIdx) => (
+              <View key={rIdx} style={{ flexDirection: "row", backgroundColor: rIdx % 2 === 0 ? "#f8fafc" : "#ffffff", borderBottomWidth: 0.5, borderColor: "#e2e8f0" }}>
+                {row.map((cell, cellIdx) => (
+                  <Text key={cellIdx} style={{ flex: 1, padding: 3, fontSize: 7.5, color: "#334155", textAlign: "center" }}>
+                    {cell}
+                  </Text>
+                ))}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* GRÁFICO DE BARRAS VISUAL NO PDF */}
+        {atividade.grafico && atividade.grafico.dados && (
+          <View style={{ marginBottom: 12, padding: 8, borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 4, backgroundColor: "#fbfcfd" }}>
+            {atividade.grafico.titulo && (
+              <Text style={{ fontSize: 8.5, fontWeight: "bold", color: "#0a5a4f", marginBottom: 6, textAlign: "center" }}>
+                GRÁFICO: {atividade.grafico.titulo}
+              </Text>
+            )}
+            <View style={{ flexDirection: "row", alignItems: "flex-end", height: 70, borderBottomWidth: 1.5, borderColor: "#334155", paddingBottom: 2, gap: 10, justifyContent: "center" }}>
+              {atividade.grafico.dados.map((d, dIdx) => {
+                const maxVal = Math.max(...atividade.grafico!.dados.map(item => item.valor), 10);
+                const hPct = Math.round((d.valor / maxVal) * 55) + 8;
+                const cores = ["#0f7a6b", "#e4572e", "#f2b544", "#3b82f6", "#8b5cf6"];
+                return (
+                  <View key={dIdx} style={{ alignItems: "center", width: 45 }}>
+                    <Text style={{ fontSize: 6.5, fontWeight: "bold", color: "#1e293b", marginBottom: 2 }}>{d.valor}</Text>
+                    <View style={{ width: 24, height: hPct, backgroundColor: cores[dIdx % cores.length], borderRadius: 2 }} />
+                    <Text style={{ fontSize: 6, color: "#475569", marginTop: 3, textAlign: "center" }}>{d.rotulo.slice(0, 8)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {questoesPagina1.map((q, idx) => (
           <View key={idx} style={styles.questionBox}>
             <View style={styles.questionHeader}>

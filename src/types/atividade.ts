@@ -6,6 +6,22 @@ export interface Questao {
   correta: "A" | "B" | "C" | "D";
 }
 
+export interface TabelaDados {
+  titulo?: string;
+  colunas: string[];
+  linhas: string[][];
+}
+
+export interface ItemGrafico {
+  rotulo: string;
+  valor: number;
+}
+
+export interface GraficoDados {
+  titulo?: string;
+  dados: ItemGrafico[];
+}
+
 export interface AtividadeGerada {
   turma: Turma;
   disciplina: string;
@@ -13,6 +29,8 @@ export interface AtividadeGerada {
   titulo: string;
   objetivos: string[];
   textoApoio: string;
+  tabela?: TabelaDados | null;
+  grafico?: GraficoDados | null;
   questoes: Questao[];
   criadoEm?: string;
 }

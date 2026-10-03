@@ -13,10 +13,26 @@ const QuestaoSchema = z.object({
   correta: z.enum(["A", "B", "C", "D"]),
 });
 
+const TabelaSchema = z.object({
+  titulo: z.string().optional(),
+  colunas: z.array(z.string()),
+  linhas: z.array(z.array(z.string())),
+}).optional().nullable();
+
+const GraficoSchema = z.object({
+  titulo: z.string().optional(),
+  dados: z.array(z.object({
+    rotulo: z.string(),
+    valor: z.number(),
+  })),
+}).optional().nullable();
+
 const AtividadeSchema = z.object({
   titulo: z.string().min(3),
   objetivos: z.array(z.string().min(3)).min(2).max(3),
   textoApoio: z.string().min(50),
+  tabela: TabelaSchema,
+  grafico: GraficoSchema,
   questoes: z.array(QuestaoSchema).length(10),
 });
 
@@ -49,18 +65,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // DIRETRIZES PEDAGÓGICAS ESPECÍFICAS
+    let diretrizDisciplina = "";
+    const ehGraficosTabelas = conteudo.toLowerCase().includes("gráfico") || conteudo.toLowerCase().includes("tabela") || conteudo.toLowerCase().includes("estatística");
+
+    if (disciplina === "Matemática") {
+      if (ehGraficosTabelas) {
+        diretrizDisciplina = `ESPECÍFICO DE MATEMÁTICA (GRÁFICOS E TABELAS):
+- Você DEVE obrigatoriamente fornecer 'grafico' e 'tabela' estruturados com dados quantitativos reais no JSON.
+- No 'grafico': forneça título e de 4 a 6 dados com 'rotulo' e 'valor' (número inteiro de 5 a 100).
+- Na 'tabela': forneça 'titulo', 'colunas' e matriz de 'linhas' com valores reais.
+- Pelo menos 4 das 10 questões devem exigir cálculo, comparação ou leitura dos números do gráfico/tabela.`;
+      } else {
+        diretrizDisciplina = `ESPECÍFICO DE MATEMÁTICA:
+- Traga problemas com situações do cotidiano, cálculos claros e precisos. Se oportuno, inclua uma 'tabela' para resolução dos problemas.`;
+      }
+    } else if (disciplina === "Língua Portuguesa") {
+      diretrizDisciplina = `ESPECÍFICO DE LÍNGUA PORTUGUESA:
+- O 'textoApoio' deve conter um texto literário ou informativo completo (conto curto, poema com estrofes ou notícia).
+- Questões com inferência, localização de dados explícitos e identificação gramatical.`;
+    } else if (disciplina === "Inglês") {
+      diretrizDisciplina = `ESPECÍFICO DE LÍNGUA INGLESA:
+- Forneça texto contextual bilíngue com vocabulário prático e útil para a série escolar.`;
+    } else if (disciplina === "História" || disciplina === "Geografia" || disciplina === "Ciências") {
+      diretrizDisciplina = `ESPECÍFICO DE ${disciplina.toUpperCase()}:
+- Apresente dados e fatos históricos/científicos/geográficos claros. Se oportuno, inclua uma 'tabela' comparativa com dados reais.`;
+    }
+
     const prompt = `Você é professor(a) especialista no Ensino Fundamental brasileiro e na BNCC.
 Crie uma atividade avaliativa oficial de ${disciplina} para a turma de ${turma}, dedicada exclusivamente ao conteúdo: "${conteudo}".
+
+${diretrizDisciplina}
 
 Regras pedagógicas obrigatórias:
 - Título específico, claro e formal, sem clichês.
 - 2 a 3 objetivos de aprendizagem observáveis e adequados ao ano.
-- Texto de apoio explicativo ou contextual de 90 a 180 palavras (em Matemática traga dados ou situação-problema; em Português texto para interpretação; em Inglês texto bilíngue/contextual).
+- Texto de apoio explicativo ou contextual de 90 a 180 palavras.
 - Exatamente 10 questões de múltipla escolha.
 - Cada questão deve ter exatamente 4 alternativas (A, B, C, D).
 - Apenas uma resposta correta, variando equilibradamente as letras corretas (A, B, C, D) entre as 10 questões.
 - Dificuldade progressiva (3 compreensão, 4 aplicação, 3 raciocínio analítico).
-- Sem ambiguidades, sem pegadinhas e sem depender de figuras externas.
+- Sem ambiguidades e sem pegadinhas.
 
 Responda em JSON rigoroso seguindo o schema requerido.`;
 
@@ -70,6 +115,31 @@ Responda em JSON rigoroso seguindo o schema requerido.`;
         titulo: { type: "string" },
         objetivos: { type: "array", items: { type: "string" } },
         textoApoio: { type: "string" },
+        tabela: {
+          type: "object",
+          properties: {
+            titulo: { type: "string" },
+            colunas: { type: "array", items: { type: "string" } },
+            linhas: { type: "array", items: { type: "array", items: { type: "string" } } },
+          },
+        },
+        grafico: {
+          type: "object",
+          properties: {
+            titulo: { type: "string" },
+            dados: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  rotulo: { type: "string" },
+                  valor: { type: "number" },
+                },
+                required: ["rotulo", "valor"],
+              },
+            },
+          },
+        },
         questoes: {
           type: "array",
           items: {

@@ -257,6 +257,70 @@ export default function PaginaPrincipal() {
               </div>
             )}
 
+            {/* TABELA VISUAL INTERATIVA NA WEB */}
+            {atividade.tabela && atividade.tabela.colunas && (
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+                {atividade.tabela.titulo && (
+                  <div className="bg-[#0f7a6b] px-4 py-2.5 text-white font-extrabold text-sm">
+                    Tabela: {atividade.tabela.titulo}
+                  </div>
+                )}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 border-b border-slate-200">
+                        {atividade.tabela.colunas.map((col, i) => (
+                          <th key={i} className="p-3 font-extrabold text-slate-800">{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {atividade.tabela.linhas.map((row, rIdx) => (
+                        <tr key={rIdx} className={rIdx % 2 === 0 ? "bg-white" : "bg-slate-50/60"}>
+                          {row.map((cell, cIdx) => (
+                            <td key={cIdx} className="p-3 border-b border-slate-100 text-slate-700 font-medium">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* GRÁFICO DE BARRAS VISUAL NA WEB */}
+            {atividade.grafico && atividade.grafico.dados && (
+              <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
+                {atividade.grafico.titulo && (
+                  <h4 className="text-sm font-extrabold text-teal-800 mb-6 flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-teal-600"></span>
+                    <span>Gráfico Estatístico: {atividade.grafico.titulo}</span>
+                  </h4>
+                )}
+                <div className="flex items-end justify-center gap-4 sm:gap-8 h-48 border-b-2 border-slate-300 pb-2">
+                  {atividade.grafico.dados.map((item, idx) => {
+                    const max = Math.max(...atividade.grafico!.dados.map(d => d.valor), 10);
+                    const pct = Math.round((item.valor / max) * 100);
+                    const cores = ["bg-[#0f7a6b]", "bg-[#e4572e]", "bg-[#f2b544]", "bg-blue-500", "bg-purple-500"];
+                    return (
+                      <div key={idx} className="flex flex-col items-center gap-2 w-14 sm:w-18">
+                        <span className="text-xs font-bold text-slate-700">{item.valor}</span>
+                        <div
+                          style={{ height: `${Math.max(pct, 12)}%` }}
+                          className={`w-full rounded-t-lg transition-all ${cores[idx % cores.length]} shadow-xs`}
+                        />
+                        <span className="text-[11px] font-semibold text-slate-500 text-center truncate w-full" title={item.rotulo}>
+                          {item.rotulo}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* LISTA DAS 10 QUESTÕES */}
             <div className="pt-4">
               <h4 className="text-sm font-extrabold text-slate-800 mb-4">
