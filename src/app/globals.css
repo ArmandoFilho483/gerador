@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --brand: #0f7a6b;
+    --brand-dark: #0a5a4f;
+    --accent: #e4572e;
+    --sun: #f2b544;
+    --paper: #fcf9f2;
+    --ink: #1c2a33;
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, .font-serif {
+    font-family: var(--font-serif), Georgia, serif;
+  }
+}

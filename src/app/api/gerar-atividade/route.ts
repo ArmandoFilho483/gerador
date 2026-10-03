@@ -1,0 +1,155 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+
+const RequisicaoSchema = z.object({
+  turma: z.enum(["4º Ano", "5º Ano"]),
+  disciplina: z.string().min(2),
+  conteudo: z.string().min(2),
+});
+
+const QuestaoSchema = z.object({
+  enunciado: z.string().min(5),
+  alternativas: z.array(z.string().min(1)).length(4),
+  correta: z.enum(["A", "B", "C", "D"]),
+});
+
+const AtividadeSchema = z.object({
+  titulo: z.string().min(3),
+  objetivos: z.array(z.string().min(3)).min(2).max(3),
+  textoApoio: z.string().min(50),
+  questoes: z.array(QuestaoSchema).length(10),
+});
+
+const MODELOS = [
+  "gemini-2.5-flash",
+  "gemini-1.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-1.5-pro",
+];
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const validacao = RequisicaoSchema.safeParse(body);
+
+    if (!validacao.success) {
+      return NextResponse.json(
+        { erro: "Parâmetros inválidos fornecidos.", detalhes: validacao.error.format() },
+        { status: 400 }
+      );
+    }
+
+    const { turma, disciplina, conteudo } = validacao.data;
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { erro: "Chave da API do Gemini (GEMINI_API_KEY) não configurada no servidor." },
+        { status: 500 }
+      );
+    }
+
+    const prompt = `Você é professor(a) especialista no Ensino Fundamental brasileiro e na BNCC.
+Crie uma atividade avaliativa oficial de ${disciplina} para a turma de ${turma}, dedicada exclusivamente ao conteúdo: "${conteudo}".
+
+Regras pedagógicas obrigatórias:
+- Título específico, claro e formal, sem clichês.
+- 2 a 3 objetivos de aprendizagem observáveis e adequados ao ano.
+- Texto de apoio explicativo ou contextual de 90 a 180 palavras (em Matemática traga dados ou situação-problema; em Português texto para interpretação; em Inglês texto bilíngue/contextual).
+- Exatamente 10 questões de múltipla escolha.
+- Cada questão deve ter exatamente 4 alternativas (A, B, C, D).
+- Apenas uma resposta correta, variando equilibradamente as letras corretas (A, B, C, D) entre as 10 questões.
+- Dificuldade progressiva (3 compreensão, 4 aplicação, 3 raciocínio analítico).
+- Sem ambiguidades, sem pegadinhas e sem depender de figuras externas.
+
+Responda em JSON rigoroso seguindo o schema requerido.`;
+
+    const schemaFormatado = {
+      type: "object",
+      properties: {
+        titulo: { type: "string" },
+        objetivos: { type: "array", items: { type: "string" } },
+        textoApoio: { type: "string" },
+        questoes: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              enunciado: { type: "string" },
+              alternativas: { type: "array", items: { type: "string" } },
+              correta: { type: "string", enum: ["A", "B", "C", "D"] },
+            },
+            required: ["enunciado", "alternativas", "correta"],
+          },
+        },
+      },
+      required: ["titulo", "objetivos", "textoApoio", "questoes"],
+    };
+
+    let respostaJson = null;
+    let ultimoErro = null;
+
+    for (const modelo of MODELOS) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent?key=${apiKey}`;
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+              temperature: 0.7,
+              responseMimeType: "application/json",
+              responseSchema: schemaFormatado,
+            },
+          }),
+        });
+
+        if (!resp.ok) {
+          const txt = await resp.text();
+          console.warn(`[GEMINI FALLBACK] Modelo ${modelo} retornou HTTP ${resp.status}: ${txt}`);
+          ultimoErro = `HTTP ${resp.status}`;
+          continue; // Tenta o próximo modelo
+        }
+
+        const dados = await resp.json();
+        const textoResposta = dados?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        if (textoResposta) {
+          const parseado = JSON.parse(textoResposta);
+          const validado = AtividadeSchema.safeParse(parseado);
+          if (validado.success) {
+            respostaJson = validado.data;
+            break; // Sucesso absoluto
+          } else {
+            console.warn(`[GEMINI SCHEMA MISMATCH] Dados não conferem com Zod:`, validado.error);
+          }
+        }
+      } catch (err: unknown) {
+        console.error(`Erro na chamada do modelo ${modelo}:`, err);
+        ultimoErro = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    if (!respostaJson) {
+      return NextResponse.json(
+        { erro: `Não foi possível gerar a atividade após tentar todos os modelos disponíveis. Detalhe: ${ultimoErro}` },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({
+      turma,
+      disciplina,
+      conteudo,
+      ...respostaJson,
+      criadoEm: new Date().toISOString(),
+    });
+  } catch (error: unknown) {
+    console.error("Erro interno na rota /api/gerar-atividade:", error);
+    return NextResponse.json(
+      { erro: "Erro interno no servidor ao processar requisição." },
+      { status: 500 }
+    );
+  }
+}
