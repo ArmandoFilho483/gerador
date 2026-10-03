@@ -215,37 +215,47 @@ const MODELOS_RESERVA = [
 const TENTATIVAS_MAX = MODELOS_RESERVA.length;
 const espera = ms => new Promise(r => setTimeout(r, ms));
 
-/* Chama o Gemini com rotatividade automatica entre todos os modelos gratuitos vigentes.
-   Se um modelo atingir a cota (429) ou sobrecarga (503/404), ele salta imediatamente para o proximo da fila. */
+/* Chama o Gemini com rotatividade automatica e timeout de seguranca de 12s.
+   Se a chamada demorar, sofrer 503 (sobrecarga) ou 429 (cota), ele pula IMEDIATAMENTE para o proximo modelo. */
 async function chamarGemini(apiKey, corpo, aviso){
   let ultimoErro = null;
   for(let tentativa = 1; tentativa <= TENTATIVAS_MAX; tentativa++){
     const modelo = MODELOS_RESERVA[tentativa - 1];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s de limite maximo por modelo
+
     try{
       const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + modelo + ":generateContent?key=" + encodeURIComponent(apiKey), {
-        method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(corpo)
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(corpo),
+        signal: controller.signal
       });
+      clearTimeout(timeoutId);
+
       if(resp.ok) return await resp.json();
+
       const txtErro = await resp.text();
       if(resp.status === 400 || resp.status === 401 || resp.status === 403){
         throw new Error("Chave invalida ou sem permissao para a API do Gemini.");
       }
+
       const temporario = resp.status === 429 || resp.status >= 500 || resp.status === 404;
       if(temporario && tentativa < TENTATIVAS_MAX){
-        ultimoErro = new Error("Falha na chamada da IA (" + resp.status + ").");
+        ultimoErro = new Error("Falha na chamada (" + resp.status + ").");
         const proxModelo = MODELOS_RESERVA[tentativa];
         if(aviso) aviso("Alternando automaticamente para " + proxModelo + " (" + (tentativa + 1) + " de " + TENTATIVAS_MAX + ")...");
-        // Se for limite de cota 429 ou modelo indisponível 404, não espera: tenta o próximo modelo instantaneamente!
-        const tempoEspera = (resp.status === 429 || resp.status === 404) ? 200 : Math.min(1000 * tentativa, 4000);
-        await espera(tempoEspera);
+        await espera(150); // Pula instantaneamente sem congelar
         continue;
       }
       throw new Error("Falha na IA (" + resp.status + "). " + txtErro.slice(0, 120));
     }catch(e){
-      if((e instanceof TypeError || e.message?.includes("Falha na chamada")) && tentativa < TENTATIVAS_MAX){
+      clearTimeout(timeoutId);
+      if(tentativa < TENTATIVAS_MAX){
         ultimoErro = e;
-        if(aviso) aviso("Alternando modelo (" + (tentativa + 1) + " de " + TENTATIVAS_MAX + ")...");
-        await espera(300);
+        const proxModelo = MODELOS_RESERVA[tentativa];
+        if(aviso) aviso("Alternando automaticamente para " + proxModelo + " (" + (tentativa + 1) + " de " + TENTATIVAS_MAX + ")...");
+        await espera(150); // Pula instantaneamente
         continue;
       }
       throw e;
