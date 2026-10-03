@@ -202,27 +202,37 @@
    CONFIGURAÇÃO
    ============================================================ */
 const CHAVE_FIXA = ""; // opcional: coloque aqui sua chave do Gemini
-const MODELO = "gemini-3.8-flash";
 const MODELOS_RESERVA = [
   "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
   "gemini-3.5-flash",
   "gemini-3.5-flash-lite",
   "gemini-flash-latest",
   "gemini-flash-lite-latest",
   "gemini-3.1-flash-lite",
-  "gemini-2.5-flash"
+  "gemini-2.5-flash-lite",
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-pro-latest"
 ];
-const TENTATIVAS_MAX = MODELOS_RESERVA.length;
+const TOTAL_MODELOS = MODELOS_RESERVA.length;
+let indiceModeloAtual = 0; // Ponteiro persistente que se move em anel circular
 const espera = ms => new Promise(r => setTimeout(r, ms));
 
-/* Chama o Gemini com rotatividade automatica e timeout de seguranca de 12s.
-   Se a chamada demorar, sofrer 503 (sobrecarga) ou 429 (cota), ele pula IMEDIATAMENTE para o proximo modelo. */
+/* Chama o Gemini em Anel Circular (Round-Robin).
+   Se um modelo estiver sem cota (429) ou instável (503/timeout), ele gira para o próximo em ciclo contínuo.
+   Se todos os modelos do anel atingirem o limite diário, o sistema identifica e informa com precisão cirúrgica. */
 async function chamarGemini(apiKey, corpo, aviso){
   let ultimoErro = null;
-  for(let tentativa = 1; tentativa <= TENTATIVAS_MAX; tentativa++){
-    const modelo = MODELOS_RESERVA[tentativa - 1];
+  let modelosComCotaEsgotada = 0;
+  const modeloInicial = indiceModeloAtual;
+
+  for(let passo = 0; passo < TOTAL_MODELOS; passo++){
+    const idx = (modeloInicial + passo) % TOTAL_MODELOS;
+    const modelo = MODELOS_RESERVA[idx];
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s de limite maximo por modelo
+    const timeoutId = setTimeout(() => controller.abort(), 12000); // 12s de limite máximo por modelo
 
     try{
       const resp = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + modelo + ":generateContent?key=" + encodeURIComponent(apiKey), {
@@ -233,35 +243,49 @@ async function chamarGemini(apiKey, corpo, aviso){
       });
       clearTimeout(timeoutId);
 
-      if(resp.ok) return await resp.json();
+      if(resp.ok){
+        indiceModeloAtual = idx; // Salva o modelo funcional como ponto de partida das próximas requisições
+        return await resp.json();
+      }
 
       const txtErro = await resp.text();
       if(resp.status === 400 || resp.status === 401 || resp.status === 403){
-        throw new Error("Chave invalida ou sem permissao para a API do Gemini.");
+        throw new Error("Chave inválida ou sem permissão para a API do Gemini. Verifique a chave inserida.");
       }
 
-      const temporario = resp.status === 429 || resp.status >= 500 || resp.status === 404;
-      if(temporario && tentativa < TENTATIVAS_MAX){
-        ultimoErro = new Error("Falha na chamada (" + resp.status + ").");
-        const proxModelo = MODELOS_RESERVA[tentativa];
-        if(aviso) aviso("Alternando automaticamente para " + proxModelo + " (" + (tentativa + 1) + " de " + TENTATIVAS_MAX + ")...");
-        await espera(150); // Pula instantaneamente sem congelar
+      if(resp.status === 429){
+        modelosComCotaEsgotada++;
+      }
+
+      // Se for 429, 503, 500, 404, avança instantaneamente para o próximo modelo no anel
+      if(passo < TOTAL_MODELOS - 1){
+        const proximoIdx = (idx + 1) % TOTAL_MODELOS;
+        const proxModelo = MODELOS_RESERVA[proximoIdx];
+        if(aviso) aviso("Alternando automaticamente para " + proxModelo + " (Tentativa " + (passo + 2) + " de " + TOTAL_MODELOS + ")...");
+        await espera(150);
         continue;
       }
-      throw new Error("Falha na IA (" + resp.status + "). " + txtErro.slice(0, 120));
+      ultimoErro = new Error("Falha na IA (" + resp.status + "): " + txtErro.slice(0, 100));
     }catch(e){
       clearTimeout(timeoutId);
-      if(tentativa < TENTATIVAS_MAX){
-        ultimoErro = e;
-        const proxModelo = MODELOS_RESERVA[tentativa];
-        if(aviso) aviso("Alternando automaticamente para " + proxModelo + " (" + (tentativa + 1) + " de " + TENTATIVAS_MAX + ")...");
-        await espera(150); // Pula instantaneamente
+      if(e.message && e.message.includes("Chave inválida")) throw e;
+      if(passo < TOTAL_MODELOS - 1){
+        const proximoIdx = (idx + 1) % TOTAL_MODELOS;
+        const proxModelo = MODELOS_RESERVA[proximoIdx];
+        if(aviso) aviso("Alternando automaticamente para " + proxModelo + " (Tentativa " + (passo + 2) + " de " + TOTAL_MODELOS + ")...");
+        await espera(150);
         continue;
       }
-      throw e;
+      ultimoErro = e;
     }
   }
-  throw ultimoErro || new Error("A IA nao respondeu. Tente novamente em alguns instantes.");
+
+  // Se todos os modelos retornaram 429, emite diagnóstico preciso de cota global
+  if(modelosComCotaEsgotada >= TOTAL_MODELOS){
+    throw new Error("Aviso de Cota: Todos os " + TOTAL_MODELOS + " modelos gratuitos do Gemini atingiram o limite diário da sua chave hoje. A cota será renovada automaticamente pelo Google em algumas horas, ou você pode cadastrar uma nova chave gratuita no rodapé.");
+  }
+
+  throw ultimoErro || new Error("Os servidores do Google estão temporariamente instáveis. Tente novamente em instantes.");
 }
 
 /* Firebase Realtime Database */
