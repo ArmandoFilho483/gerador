@@ -795,13 +795,7 @@ function quebrar(ctx, texto, largura){
   return linhas;
 }
 
-function prepararIntroducao(ctx,a){
-  ctx.font="800 32px Nunito, sans-serif";
-  const titulo=quebrar(ctx,a.titulo,W-2*M);
-  ctx.font="700 20px Nunito, sans-serif";
-  const conteudo=quebrar(ctx,"Conteúdo: "+a.conteudo,W-2*M-30);
-  ctx.font="600 19px Nunito, sans-serif";
-  const objetivos=(a.objetivos||[]).flatMap(o=>quebrar(ctx,"• "+o,W-2*M-26));
+
 function desenharTabela(ctx, tab, x, y, larg){
   if(!tab || !tab.colunas || !tab.linhas || !tab.colunas.length) return y;
   const numCols = tab.colunas.length;
