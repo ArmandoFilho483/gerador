@@ -476,6 +476,9 @@ async function baixarDocx(){
           else if(q.figura.tipo === "forma_geometrica"){ figW = 230; figH = 80; }
           else if(q.figura.tipo === "mini_grafico"){ figW = 245; figH = 85; }
           else if(q.figura.tipo === "regua" || q.figura.tipo === "reta_numerica"){ figW = 250; figH = 65; }
+          else if(q.figura.tipo === "termometro"){ figW = 210; figH = 80; }
+          else if(q.figura.tipo === "malha_quadriculada" || q.figura.tipo === "transferidor_angulo"){ figW = 235; figH = 82; }
+          else if(q.figura.tipo === "tirinha_quadrinhos" || q.figura.tipo === "chaveamento_torneio"){ figW = 255; figH = 88; }
           
           conteudoSecao2.push(
             new Paragraph({

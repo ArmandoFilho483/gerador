@@ -34,6 +34,12 @@ function desenharGraficoEstatistico(ctx, g, x, y, larg, altDisponivel = 220){
     return desenharGraficoBarrasHorizontais(ctx, g, x, y, larg, altDisponivel);
   } else if(tipo.includes("pizza") || tipo.includes("setor")){
     return desenharGraficoPizza(ctx, g, x, y, larg, altDisponivel);
+  } else if(tipo.includes("rosca") || tipo.includes("donut")){
+    return desenharGraficoRosca(ctx, g, x, y, larg, altDisponivel);
+  } else if(tipo.includes("picto") || tipo.includes("simbolo")){
+    return desenharPictograma(ctx, g, x, y, larg, altDisponivel);
+  } else if(tipo.includes("climo") || tipo.includes("clima") || tipo.includes("chuva")){
+    return desenharClimograma(ctx, g, x, y, larg, altDisponivel);
   } else if(tipo.includes("regua") || tipo.includes("régua")){
     return desenharReguaGraduada(ctx, g, x, y, larg, 110);
   } else {
@@ -461,6 +467,233 @@ function desenharReguaGraduada(ctx, g, x, y, larg, altTotal){
 
   ctx.textAlign = "left";
   return y + hBox + 20;
+}
+
+/**
+ * 6. GRÁFICO DE ROSCA (DONUT) COM TOTALIZADOR CENTRAL
+ */
+function desenharGraficoRosca(ctx, g, x, y, larg, altTotal){
+  const hGrafico = altTotal || 210;
+  ctx.fillStyle = "#fafcfc";
+  ctx.fillRect(x, y, larg, hGrafico);
+  ctx.strokeStyle = "#e2d9c8";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x, y, larg, hGrafico);
+
+  const valores = g.dados.map(d => Number(d.valor) || 0);
+  const total = valores.reduce((acc, v) => acc + v, 0) || 1;
+
+  const centroX = x + larg * 0.32;
+  const centroY = y + hGrafico / 2;
+  const raioExt = Math.min(hGrafico * 0.38, 70);
+  const raioInt = raioExt * 0.52;
+
+  let anguloInicial = -Math.PI / 2;
+
+  g.dados.forEach((d, idx) => {
+    const valor = Number(d.valor) || 0;
+    const anguloFatia = (valor / total) * (Math.PI * 2);
+    const anguloFinal = anguloInicial + anguloFatia;
+    const cor = CORES_PALETA_GRAFICOS[idx % CORES_PALETA_GRAFICOS.length];
+
+    ctx.fillStyle = cor;
+    ctx.beginPath();
+    ctx.arc(centroX, centroY, raioExt, anguloInicial, anguloFinal);
+    ctx.arc(centroX, centroY, raioInt, anguloFinal, anguloInicial, true);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    anguloInicial = anguloFinal;
+  });
+
+  // Centro da rosca com o total
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.arc(centroX, centroY, raioInt - 2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#20303a";
+  ctx.font = "800 15px Nunito, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("TOTAL", centroX, centroY - 8);
+  ctx.font = "800 17px Nunito, sans-serif";
+  ctx.fillStyle = "#0f7a6b";
+  ctx.fillText(String(total), centroX, centroY + 10);
+
+  // Legenda lateral
+  ctx.textBaseline = "alphabetic";
+  const legX = x + larg * 0.62;
+  const itemH = 24;
+  const startLegY = y + (hGrafico - g.dados.length * itemH) / 2 + 10;
+
+  g.dados.forEach((d, idx) => {
+    const cor = CORES_PALETA_GRAFICOS[idx % CORES_PALETA_GRAFICOS.length];
+    const ly = startLegY + idx * itemH;
+
+    ctx.fillStyle = cor;
+    ctx.fillRect(legX, ly - 10, 14, 14);
+    ctx.fillStyle = "#20303a";
+    ctx.font = "700 12px Nunito, sans-serif";
+    ctx.textAlign = "left";
+    const pct = Math.round(((Number(d.valor) || 0) / total) * 100);
+    ctx.fillText(`${String(d.rotulo).slice(0, 14)} (${d.valor} · ${pct}%)`, legX + 22, ly + 2);
+  });
+
+  return y + hGrafico + 20;
+}
+
+/**
+ * 7. PICTOGRAMA (Ícones visuais repetidos padrão SAEB/BNCC)
+ */
+function desenharPictograma(ctx, g, x, y, larg, altTotal){
+  const hGrafico = altTotal || 210;
+  ctx.fillStyle = "#fafcfc";
+  ctx.fillRect(x, y, larg, hGrafico);
+  ctx.strokeStyle = "#e2d9c8";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x, y, larg, hGrafico);
+
+  const valores = g.dados.map(d => Number(d.valor) || 0);
+  const maxVal = Math.max(...valores, 1);
+  const valorPorIcone = maxVal > 50 ? 10 : (maxVal > 20 ? 5 : 1);
+  const iconeSimbolo = g.icone || "★";
+
+  // Cabeçalho da legenda do pictograma
+  ctx.fillStyle = "#0f7a6b";
+  ctx.font = "800 12px Nunito, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText(`Legenda: Cada ${iconeSimbolo} equivale a ${valorPorIcone} unidades`, x + larg - 20, y + 22);
+
+  const margemEsq = 120;
+  const numLinhas = g.dados.length;
+  const espacoLinha = (hGrafico - 40) / numLinhas;
+
+  g.dados.forEach((d, idx) => {
+    const ly = y + 42 + idx * espacoLinha;
+    const valor = Number(d.valor) || 0;
+    const qtdIcones = Math.min(10, Math.round(valor / valorPorIcone));
+
+    // Rótulo da linha
+    ctx.font = "700 13px Nunito, sans-serif";
+    ctx.fillStyle = "#334155";
+    ctx.textAlign = "right";
+    ctx.fillText(String(d.rotulo).slice(0, 15), x + margemEsq - 15, ly + 14);
+
+    // Ícones desenhados
+    ctx.font = "18px sans-serif";
+    ctx.fillStyle = CORES_PALETA_GRAFICOS[idx % CORES_PALETA_GRAFICOS.length];
+    ctx.textAlign = "left";
+    let iconesStr = "";
+    for(let k = 0; k < qtdIcones; k++) iconesStr += iconeSimbolo + " ";
+    ctx.fillText(iconesStr, x + margemEsq, ly + 15);
+
+    // Valor numérico total no final da linha
+    ctx.font = "800 13px Nunito, sans-serif";
+    ctx.fillStyle = "#20303a";
+    ctx.fillText(`(${valor})`, x + margemEsq + qtdIcones * 22 + 8, ly + 14);
+  });
+
+  return y + hGrafico + 20;
+}
+
+/**
+ * 8. CLIMOGRAMA (Colunas de Chuva em Azul + Linha de Temperatura em Vermelho)
+ */
+function desenharClimograma(ctx, g, x, y, larg, altTotal){
+  const hGrafico = altTotal || 215;
+  const margemEsq = 50;
+  const margemDir = 50;
+  const margemSup = 40;
+  const margemInf = 38;
+
+  const wEfetivo = larg - margemEsq - margemDir;
+  const hEfetivo = hGrafico - margemSup - margemInf;
+
+  ctx.fillStyle = "#fafcfc";
+  ctx.fillRect(x, y, larg, hGrafico);
+  ctx.strokeStyle = "#e2d9c8";
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(x, y, larg, hGrafico);
+
+  const origemX = x + margemEsq;
+  const origemY = y + hGrafico - margemInf;
+
+  // Eixos e grade
+  ctx.strokeStyle = "#20303a";
+  ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(origemX, y + margemSup - 5);
+  ctx.lineTo(origemX, origemY);
+  ctx.lineTo(origemX + wEfetivo, origemY);
+  ctx.lineTo(origemX + wEfetivo, y + margemSup - 5);
+  ctx.stroke();
+
+  // Eixo Y esquerdo (Chuva mm)
+  ctx.fillStyle = "#0284c7";
+  ctx.font = "700 11px Nunito, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText("Chuva (mm)", origemX - 8, y + margemSup - 10);
+
+  // Eixo Y direito (Temp °C)
+  ctx.fillStyle = "#dc2626";
+  ctx.textAlign = "left";
+  ctx.fillText("Temp (°C)", origemX + wEfetivo + 8, y + margemSup - 10);
+
+  const numMeses = g.dados.length;
+  const stepX = wEfetivo / numMeses;
+  const barW = stepX * 0.55;
+
+  const valoresChuva = g.dados.map(d => Number(d.valor) || 0);
+  const maxChuva = Math.max(...valoresChuva, 150);
+  const pontosTemp = [];
+
+  g.dados.forEach((d, i) => {
+    const valChuva = Number(d.valor) || 0;
+    const hBarra = (valChuva / maxChuva) * hEfetivo;
+    const bx = origemX + i * stepX + (stepX - barW) / 2;
+    const by = origemY - hBarra;
+
+    // Coluna azul de chuva
+    ctx.fillStyle = "rgba(2, 132, 199, 0.75)";
+    ctx.fillRect(bx, by, barW, hBarra);
+    ctx.strokeStyle = "#0284c7";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx, by, barW, hBarra);
+
+    // Mês / Rótulo
+    ctx.font = "700 11px Nunito, sans-serif";
+    ctx.fillStyle = "#334155";
+    ctx.textAlign = "center";
+    ctx.fillText(String(d.rotulo).slice(0, 3), bx + barW / 2, origemY + 16);
+
+    // Temperatura simulada (ou fornecida em d.temperatura)
+    const tempVal = Number(d.temperatura || (20 + Math.sin(i) * 6));
+    const py = origemY - (tempVal / 40) * hEfetivo;
+    pontosTemp.push({ x: bx + barW / 2, y: py, temp: tempVal });
+  });
+
+  // Linha vermelha de temperatura
+  ctx.strokeStyle = "#dc2626";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  pontosTemp.forEach((p, idx) => {
+    if(idx === 0) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+
+  // Pontos vermelhos
+  pontosTemp.forEach(p => {
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#dc2626"; ctx.lineWidth = 2; ctx.stroke();
+  });
+
+  return y + hGrafico + 20;
 }
 
 /**

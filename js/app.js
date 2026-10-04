@@ -224,62 +224,62 @@ async function gerar(nome, conteudo){
   let tiposSugeridos = [];
 
   if(nome === "Língua Portuguesa" || nome === "Português"){
-    if(cNorm.includes("gênero") || cNorm.includes("conto") || cNorm.includes("poema") || cNorm.includes("receita") || cNorm.includes("notícia") || cNorm.includes("carta")){
-      especificacaoVisual = `ESPECÍFICO DE LÍNGUA PORTUGUESA - GÊNEROS TEXTUAIS:
-- 'textoApoio': Apresente um texto exemplar autêntico do gênero (${conteudo}).
-- Nas figuras das questões: use 'baloes_dialogo' ou 'verbete_dicionario'.`;
-      tiposSugeridos = ["baloes_dialogo", "verbete_dicionario"];
-    } else {
-      especificacaoVisual = `ESPECÍFICO DE LÍNGUA PORTUGUESA:
-- Nas figuras das questões: use 'verbete_dicionario' ou 'baloes_dialogo'.`;
-      tiposSugeridos = ["verbete_dicionario", "baloes_dialogo"];
-    }
+    especificacaoVisual = `ESPECÍFICO DE LÍNGUA PORTUGUESA (${conteudo.toUpperCase()}):
+- 'textoApoio': Apresente um texto exemplar autêntico, narrativo, informativo ou poético.
+- Nas figuras das questões: alterne entre 'tirinha_quadrinhos', 'baloes_dialogo' e 'verbete_dicionario'.`;
+    tiposSugeridos = ["tirinha_quadrinhos", "baloes_dialogo", "verbete_dicionario"];
   } else if(nome === "Matemática"){
     if(cNorm.includes("fração") || cNorm.includes("fracao")){
       especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - FRAÇÕES:
-- Nas figuras das questões: inclua 'fracao_visual' ou 'reta_numerica' com dados numéricos completos.`;
+- Nas figuras das questões: use 'fracao_visual' (barras/pizzas) ou 'reta_numerica' com dados numéricos completos.`;
       tiposSugeridos = ["fracao_visual", "reta_numerica"];
-    } else if(cNorm.includes("geometria") || cNorm.includes("figuras planas") || cNorm.includes("sólidos") || cNorm.includes("perímetro") || cNorm.includes("área")){
-      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - GEOMETRIA:
-- Nas figuras das questões: use 'forma_geometrica' com formas planas cotadas ou sólidos.`;
-      tiposSugeridos = ["forma_geometrica"];
+    } else if(cNorm.includes("geometria") || cNorm.includes("ângulo") || cNorm.includes("perímetro") || cNorm.includes("área")){
+      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - GEOMETRIA E MEDIDAS:
+- Nas figuras das questões: alterne entre 'malha_quadriculada' (cálculo de área/perímetro), 'transferidor_angulo' e 'forma_geometrica'.`;
+      tiposSugeridos = ["malha_quadriculada", "transferidor_angulo", "forma_geometrica"];
     } else if(cNorm.includes("comprimento") || cNorm.includes("massa") || cNorm.includes("capacidade") || cNorm.includes("tempo")){
-      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - MEDIDAS:
-- Nas figuras das questões: use 'relogio', 'balanca_medicao' ou 'reta_numerica'.`;
-      tiposSugeridos = ["relogio", "balanca_medicao", "reta_numerica"];
+      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - GRANDEZAS E MEDIDAS:
+- Nas figuras das questões: alterne entre 'regua', 'termometro', 'relogio' e 'balanca_medicao'.`;
+      tiposSugeridos = ["regua", "termometro", "relogio", "balanca_medicao"];
     } else if(cNorm.includes("gráfico") || cNorm.includes("tabela") || cNorm.includes("estatística")){
       especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - ESTATÍSTICA:
-- Forneça simultaneamente 'grafico' e 'tabela' na introdução e use 'mini_grafico' nas questões com rótulos e valores preenchidos.`;
+- No gráfico introdutório: varie o 'tipoGrafico' ('colunas', 'barras', 'linhas', 'pizza', 'rosca' ou 'pictograma').
+- Nas questões: use 'mini_grafico' com rótulos e valores reais.`;
       tiposSugeridos = ["mini_grafico"];
     } else {
-      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - OPERAÇÕES:
-- Nas figuras das questões: use 'reta_numerica', 'mini_grafico' ou 'forma_geometrica'.`;
-      tiposSugeridos = ["reta_numerica", "mini_grafico", "forma_geometrica"];
+      especificacaoVisual = `ESPECÍFICO DE MATEMÁTICA - NÚMEROS E OPERAÇÕES:
+- Nas figuras das questões: use 'reta_numerica', 'malha_quadriculada' ou 'mini_grafico'.`;
+      tiposSugeridos = ["reta_numerica", "malha_quadriculada", "mini_grafico"];
     }
   } else if(nome === "História"){
     especificacaoVisual = `ESPECÍFICO DE HISTÓRIA (${conteudo.toUpperCase()}):
-- Nas figuras das questões: use 'linha_do_tempo' ou 'ficha_fonte'.`;
+- Nas figuras das questões: use 'linha_do_tempo' ou 'ficha_fonte' com trechos de época reais.`;
     tiposSugeridos = ["linha_do_tempo", "ficha_fonte"];
   } else if(nome === "Geografia"){
     especificacaoVisual = `ESPECÍFICO DE GEOGRAFIA (${conteudo.toUpperCase()}):
-- Nas figuras das questões: use 'rosa_dos_ventos' ou 'mini_grafico'.`;
-    tiposSugeridos = ["rosa_dos_ventos", "mini_grafico"];
+- No gráfico introdutório se houver clima: use 'climograma' ou 'barras'.
+- Nas figuras das questões: alterne entre 'rosa_dos_ventos', 'termometro' e 'mini_grafico'.`;
+    tiposSugeridos = ["rosa_dos_ventos", "termometro", "mini_grafico"];
   } else if(nome === "Ciências"){
     especificacaoVisual = `ESPECÍFICO DE CIÊNCIAS (${conteudo.toUpperCase()}):
-- Nas figuras das questões: use 'cadeia_alimentar' ou 'ciclo_esquema'.`;
-    tiposSugeridos = ["cadeia_alimentar", "ciclo_esquema"];
+- Nas figuras das questões: alterne entre 'cadeia_alimentar', 'ciclo_esquema' e 'termometro' (para calor/temperatura).`;
+    tiposSugeridos = ["cadeia_alimentar", "ciclo_esquema", "termometro"];
   } else if(nome === "Arte"){
     especificacaoVisual = `ESPECÍFICO DE ARTE (${conteudo.toUpperCase()}):
-- Nas figuras das questões: use 'circulo_cromatico' ou 'forma_geometrica'.`;
+- Nas figuras das questões: use 'circulo_cromatico' (mistura de cores) ou 'forma_geometrica'.`;
     tiposSugeridos = ["circulo_cromatico", "forma_geometrica"];
   } else if(nome === "Inglês"){
     especificacaoVisual = `ESPECÍFICO DE LÍNGUA INGLESA (${conteudo.toUpperCase()}):
-- Nas figuras das questões: use 'baloes_dialogo' ou 'relogio'.`;
-    tiposSugeridos = ["baloes_dialogo", "relogio"];
+- Nas figuras das questões: alterne entre 'tirinha_quadrinhos', 'baloes_dialogo' e 'relogio'.`;
+    tiposSugeridos = ["tirinha_quadrinhos", "baloes_dialogo", "relogio"];
+  } else if(nome === "Educação Física"){
+    especificacaoVisual = `ESPECÍFICO DE EDUCAÇÃO FÍSICA (${conteudo.toUpperCase()}):
+- Nas figuras das questões: use 'chaveamento_torneio' ou 'mini_grafico' (tempos e pontuações).`;
+    tiposSugeridos = ["chaveamento_torneio", "mini_grafico"];
   } else {
     especificacaoVisual = `ESPECÍFICO DE ${nome.toUpperCase()} (${conteudo.toUpperCase()}):
-- Nas figuras das questões: use 'quadro_reflexivo'.`;
-    tiposSugeridos = ["quadro_reflexivo"];
+- Nas figuras das questões: alterne entre 'quadro_reflexivo' e 'tirinha_quadrinhos'.`;
+    tiposSugeridos = ["quadro_reflexivo", "tirinha_quadrinhos"];
   }
 
   const eh4Ano = turmaSel.includes("4º");
@@ -368,7 +368,9 @@ Responda somente em formato JSON rigoroso.`;
                     "baloes_dialogo", "verbete_dicionario",
                     "linha_do_tempo", "ficha_fonte",
                     "rosa_dos_ventos", "cadeia_alimentar", "ciclo_esquema",
-                    "circulo_cromatico", "quadro_reflexivo"
+                    "circulo_cromatico", "quadro_reflexivo",
+                    "termometro", "malha_quadriculada", "transferidor_angulo",
+                    "tirinha_quadrinhos", "chaveamento_torneio"
                   ]
                 },
                 legenda: { type: "string" },
