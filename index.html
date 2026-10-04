@@ -68,6 +68,29 @@
   .selection{margin-top:14px;padding:11px 14px;border-left:4px solid var(--sun);background:#fff;border-radius:0 10px 10px 0;
     font-size:14px;color:var(--muted)}
   .selection strong{color:var(--ink)}
+  .generate-bar{margin-top:16px;padding:16px 18px;border-radius:14px;background:#fff;border:2px solid var(--brand);
+    display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 8px 24px -12px rgba(15,122,107,.25)}
+  .generate-info{flex:1;min-width:240px}
+  .generate-title{font-size:15px;color:var(--ink);font-weight:700}
+  .generate-title strong{color:var(--brand-dark)}
+  .generate-desc{margin:4px 0 0;font-size:13px;color:var(--muted)}
+  .btn-generate{background:linear-gradient(135deg,var(--brand) 0%,#0a5a4f 100%);color:#fff;padding:14px 26px;font-size:16px;box-shadow:0 8px 20px -8px rgba(15,122,107,.6)}
+  .btn-generate:hover{transform:translateY(-2px);box-shadow:0 12px 26px -8px rgba(15,122,107,.75)}
+  .quota-monitor{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
+  .quota-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--ink);background:#f1ece0;padding:6px 12px;border-radius:999px}
+  .quota-pill.success{background:#e2f4ee;color:#0a5a4f}
+  .btn-historico-toggle{margin-left:auto;background:none;border:1px solid #d5c8b2;color:var(--brand-dark);padding:5px 12px;border-radius:999px;font:700 12px Nunito,sans-serif;cursor:pointer;transition:.15s}
+  .btn-historico-toggle:hover{background:#fff;border-color:var(--brand)}
+  .historico-drawer{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}
+  .historico-drawer-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+  .historico-drawer-head h4{margin:0;font-size:15px;color:var(--brand-dark)}
+  .historico-info{font-size:12px;color:var(--muted)}
+  .historico-items{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto}
+  .historico-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 12px;background:#faf7f0;border-radius:10px;border:1px solid #eee5d4;font-size:13px}
+  .historico-item strong{color:var(--ink)}
+  .historico-meta{color:var(--muted);font-size:12px}
+  .btn-mini-rec{background:#0f7a6b;color:#fff;border:none;border-radius:8px;padding:5px 10px;font:700 12px Nunito,sans-serif;cursor:pointer}
+  .btn-mini-rec:hover{background:#0a5a4f}
   .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   .btn{border:none;border-radius:12px;padding:13px 20px;font-weight:800;font-family:inherit;
     font-size:15px;cursor:pointer;transition:.15s}
@@ -176,10 +199,32 @@
     <div class="grid" id="disciplinas"></div>
     <section class="topics-panel" id="topicsPanel" hidden>
       <div class="topics-head">
-        <div><h2 id="topicsTitle"></h2><p>Selecione um dos conteúdos para gerar a atividade.</p></div>
+        <div><h2 id="topicsTitle"></h2><p>Selecione um dos conteúdos abaixo para preparar a atividade.</p></div>
         <span class="topics-count">10 conteúdos</span>
       </div>
       <div class="topics" id="conteudos"></div>
+      
+      <div class="generate-bar" id="generateBar" hidden>
+        <div class="generate-info">
+          <div class="generate-title" id="generateSummary">Turma: <strong>4º Ano</strong> · Disciplina: <strong>Matemática</strong> · Conteúdo: <strong>Frações</strong></div>
+          <p class="generate-desc">Tudo pronto! Clique no botão ao lado para gerar uma atividade inédita com gabarito oficial.</p>
+        </div>
+        <button class="btn primary btn-generate" id="btnGerar" type="button">✨ Gerar Atividade Avaliativa</button>
+      </div>
+
+      <div class="quota-monitor" id="quotaMonitor">
+        <span class="quota-pill" id="provasHojePill">📋 Provas geradas hoje: <strong id="qtdProvasHoje">0</strong></span>
+        <span class="quota-pill success" id="esteiraPill">⚡ Esteira Ativa: <strong>12 modelos operacionais</strong></span>
+        <button class="btn-historico-toggle" id="btnToggleHistorico" type="button">📂 Histórico (Últimos 7 dias)</button>
+      </div>
+
+      <div class="historico-drawer" id="historicoDrawer" hidden>
+        <div class="historico-drawer-head">
+          <h4>Provas Criadas nos Últimos 7 Dias</h4>
+          <span class="historico-info">Salvas no navegador · Expurgo automático em 7 dias</span>
+        </div>
+        <div class="historico-items" id="historicoItems"></div>
+      </div>
       <div class="selection" id="selecao" hidden></div>
     </section>
     <div class="status" id="status"></div>
@@ -540,21 +585,130 @@ DISCIPLINAS.forEach(([nome,emo])=>{
   elDisc.appendChild(b);
 });
 
+/* ============================================================
+   MATRIZ DINÂMICA DE CONTEXTOS ANTI-REPETIÇÃO
+   ============================================================ */
+const MATRIZ_CONTEXTOS = {
+  "Português": [
+    "Diário de bordo de uma expedição científica na Amazônia",
+    "Crônica sobre a feira de adoção de animais do bairro",
+    "Notícia escolar sobre a horta comunitária e sustentabilidade",
+    "Troca de cartas/e-mails entre amigos de estados diferentes (Bahia e Paraná)",
+    "Fábula contemporânea com animais urbanos e cooperação",
+    "Entrevista de rádio escolar com um inventor mirim de brinquedos recicláveis",
+    "Conto de mistério sobre o desaparecimento de um livro antigo na biblioteca",
+    "Relato de viagem de trem pela Serra da Mantiqueira"
+  ],
+  "Matemática": [
+    "Controle de estoque e vendas da cantina escolar saudável",
+    "Expedição astronômica: distâncias planetárias e pesos relativos",
+    "Campeonato regional de atletismo escolar: tempos, saltos e pontuação",
+    "Orçamento e planejamento para a reforma do parque da cidade",
+    "Receitas culinárias regionais: proporções, massas e medidas de capacidade",
+    "Painel solar e economia de energia elétrica na comunidade",
+    "Medições topográficas e mapeamento de trilhas em parque ecológico",
+    "Feira de artesanato e cerâmica: geometria dos vasos e padrões de azulejos"
+  ],
+  "História": [
+    "Diário fictício de um tropeiro cruzando o Caminho dos Diamantes no séc. XVIII",
+    "Memórias de uma tecelã na chegada das primeiras indústrias ao Brasil",
+    "Escavações arqueológicas no Parque Nacional da Serra da Capivara",
+    "Histórias contadas por anciãos sobre a fundação do bairro e antigos ofícios",
+    "A rota das especiarias e os relatos dos navegantes em cartas náuticas",
+    "Movimentos de resistência e quilombos nos sertões nordestinos",
+    "A evolução dos meios de comunicação: do telégrafo aos satélites no Brasil"
+  ],
+  "Geografia": [
+    "Bacia hidrográfica do Rio São Francisco e as comunidades ribeirinhas",
+    "Comparativo climático e de vegetação entre a Caatinga e os Pampas",
+    "O trajeto das mercadorias dos portos brasileiros até os centros urbanos",
+    "Expansão urbana sustentável e cinturões verdes em metrópoles",
+    "Uso do solo, agricultura familiar e tecnologia no Centro-Oeste",
+    "Estudo das coordenadas e relevo na Chapada Diamantina"
+  ],
+  "Ciências": [
+    "Ecossistema dos recifes de coral no litoral de Abrolhos",
+    "O ciclo da matéria orgânica e a composteira da escola",
+    "Adaptações de plantas e animais para sobreviver ao semiárido",
+    "A física das brincadeiras: forças no balanço, escorregador e skate",
+    "Ciclo hidrológico e a formação das chuvas orográficas nas serras",
+    "Microrganismos fermentadores na fabricação de pães e queijos artesanais"
+  ],
+  "Arte": [
+    "Mosaicos bizantinos e geometria na arte mourisca",
+    "A xilogravura na literatura de cordel nordestina",
+    "O modernismo e o uso das cores na obra de Tarsila do Amaral",
+    "Cores complementares e sombras na pintura impressionista ao ar livre",
+    "Arte plumária e grafismos corporais dos povos originários",
+    "Esculturas cinéticas e arte em movimento"
+  ],
+  "Inglês": [
+    "Planning a healthy international picnic with friends from around the world",
+    "A day at the wildlife conservation zoo: daily routines and animal habits",
+    "Lost luggage at the eco-airport: describing objects, colors and clothes",
+    "Weather report from different cities around the globe: seasons and forecasts",
+    "A science fair presentation: simple steps, tools and experiments"
+  ],
+  "Educação Física": [
+    "Jogos e brincadeiras indígenas (Petychebó, Peteca e Corrida de Toras)",
+    "Fisiologia prática: monitorando os batimentos cardíacos antes e após corridas",
+    "Estratégia e cooperação em esportes coletivos sem contato físico",
+    "Circuitos de agilidade e equilíbrio postural na ginástica escolar"
+  ],
+  "Formação Cidadã": [
+    "Assembleia estudantil e o orçamento participativo do grêmio escolar",
+    "Consumo consciente, direito do consumidor e descarte de lixo eletrônico",
+    "Acessibilidade urbana e inclusão de pessoas com deficiência na cidade",
+    "Mediação pacífica de conflitos no recreio e respeito às diferenças de opinião"
+  ]
+};
+
+function sortearContexto(disciplina){
+  const lista = MATRIZ_CONTEXTOS[disciplina] || MATRIZ_CONTEXTOS["Matemática"];
+  return lista[Math.floor(Math.random() * lista.length)];
+}
+
 function abrirDisciplina(nome){
   discSel=nome; conteudoSel=null;
   [...elDisc.children].forEach(c=>c.setAttribute("aria-pressed", String(c.dataset.nome===nome)));
   elTopicsTitle.textContent=nome;
   elConteudos.innerHTML="";
+  
+  // Ocultar barra de geração até que o usuário clique em um conteúdo
+  const elGenBar = document.getElementById("generateBar");
+  if(elGenBar) elGenBar.hidden = true;
+
   CONTEUDOS[turmaSel][nome].forEach((conteudo,i)=>{
     const b=document.createElement("button");
     b.className="topic"; b.dataset.conteudo=conteudo; b.setAttribute("aria-pressed","false");
     b.innerHTML=`<span class="num">${String(i+1).padStart(2,"0")}</span><span>${conteudo}</span>`;
-    b.onclick=()=>gerar(nome,conteudo);
+    b.onclick=()=>selecionarConteudo(nome, conteudo);
     elConteudos.appendChild(b);
   });
   elTopicsPanel.hidden=false; elSelecao.hidden=true;
   limpar(false);
   elTopicsPanel.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+function selecionarConteudo(nome, conteudo){
+  discSel = nome;
+  conteudoSel = conteudo;
+  [...elConteudos.children].forEach(c=>c.setAttribute("aria-pressed", String(c.dataset.conteudo===conteudo)));
+  
+  const elGenBar = document.getElementById("generateBar");
+  const elGenSummary = document.getElementById("generateSummary");
+  const elBtnGerar = document.getElementById("btnGerar");
+  
+  if(elGenSummary){
+    elGenSummary.innerHTML = `Turma: <strong>${turmaSel.replace(" Fundamental","")}</strong> · Disciplina: <strong>${nome}</strong> · Conteúdo: <strong>${conteudo}</strong>`;
+  }
+  if(elGenBar){
+    elGenBar.hidden = false;
+    elGenBar.scrollIntoView({behavior:"smooth", block:"nearest"});
+  }
+  if(elBtnGerar){
+    elBtnGerar.onclick = () => gerar(discSel, conteudoSel);
+  }
 }
 
 inpKey.value = chaveCompartilhada || localStorage.getItem("gemini_key") || "";
@@ -608,6 +762,8 @@ function limpar(resetDisc=true){
   [...elDisc.children].forEach(c=>estado(c.dataset.nome,"","Ver 10 conteúdos"));
   [...elConteudos.children].forEach(c=>c.setAttribute("aria-pressed","false"));
   elSelecao.hidden=true;
+  const elGenBar = document.getElementById("generateBar");
+  if(elGenBar && resetDisc) elGenBar.hidden = true;
   if(resetDisc) [...elDisc.children].forEach(c=>c.setAttribute("aria-pressed","false"));
   msg("");
 }
@@ -730,6 +886,9 @@ async function gerar(nome, conteudo){
 - Questões: Exigem inferência, cálculo de diferença entre totais, análise de tabelas compostas e justificativa de raciocínio lógico.`;
   }
 
+  // Sorteio dinâmico do contexto temático para evitar questões e gráficos repetitivos
+  const contextoSorteado = sortearContexto(nome);
+
   const ehGraficosTabelas = cNorm.includes("gráfico") || cNorm.includes("tabela") || cNorm.includes("estatística");
   const exigeGrafico = ["Matemática", "Geografia", "Ciências"].includes(nome) || ehGraficosTabelas;
   const diretrizRecursoGeral = exigeGrafico
@@ -739,12 +898,17 @@ async function gerar(nome, conteudo){
   const prompt = `Você é professor(a) especialista no Ensino Fundamental brasileiro e na BNCC.
 Crie uma atividade avaliativa oficial de ${nome} para a turma de ${turmaSel}, dedicada exclusivamente ao conteúdo: "${conteudo}".
 
+EIXO TEMÁTICO CONTEXTUAL OBRIGATÓRIO (ANTI-REPETIÇÃO):
+Ambientar toda a narrativa, o texto de apoio, a tabela de dados, os gráficos e os enunciados das questões estritamente no seguinte cenário do mundo real:
+👉 "${contextoSorteado}".
+(ATENÇÃO: É terminantemente proibido utilizar temas clichês como feira de frutas simples ou brinquedos genéricos de bola/boneca, a menos que especificado acima).
+
 ${calibracaoAno}
 
 ${especificacaoVisual}
 
 Regras pedagógicas obrigatórias:
-- Dê um título específico, evitando títulos genéricos.
+- Dê um título específico e contextualizado ao cenário sorteado, evitando títulos genéricos.
 - Inclua 2 ou 3 objetivos de aprendizagem observáveis, perfeitamente adequados às habilidades da BNCC do ${turmaSel}.
 - Respeite rigorosamente o nível cognitivo e os limites matemáticos estipulados para o ${turmaSel}.
 ${diretrizRecursoGeral}
@@ -923,6 +1087,11 @@ Responda somente em formato JSON rigoroso.`;
     estado(nome,"ready","Atividade pronta ✓");
     btnBaixar.disabled=false; btnRefazer.disabled=false;
     msg("Atividade pronta: " + paginas.length + " páginas em um único PDF, incluindo o gabarito.");
+    
+    // Atualiza contador de hoje e histórico local de 7 dias
+    incrementarContadorHoje();
+    salvarNoHistorico7Dias(atividade);
+    
     salvarNoFirebase({ ...atividade, criadoEm:new Date().toISOString() });
   }catch(e){
     console.error(e);
@@ -2158,6 +2327,137 @@ function baixar(){
   setTimeout(()=>URL.revokeObjectURL(url),1500);
   msg("PDF baixado com " + paginas.length + " páginas, incluindo o gabarito.");
 }
+
+/* ============================================================
+   HISTÓRICO LOCAL (7 DIAS COM AUTO-EXPURGO) E CONTADOR DIÁRIO
+   ============================================================ */
+function obterChaveDataHoje(){
+  const hoje = new Date();
+  return hoje.toISOString().slice(0,10); // YYYY-MM-DD
+}
+
+function carregarContadorHoje(){
+  const dataHoje = obterChaveDataHoje();
+  const dados = JSON.parse(localStorage.getItem("contador_provas_diarias") || "{}");
+  const el = document.getElementById("qtdProvasHoje");
+  if(el){
+    el.textContent = dados[dataHoje] || 0;
+  }
+}
+
+function incrementarContadorHoje(){
+  const dataHoje = obterChaveDataHoje();
+  const dados = JSON.parse(localStorage.getItem("contador_provas_diarias") || "{}");
+  dados[dataHoje] = (dados[dataHoje] || 0) + 1;
+  // Limpa datas antigas no contador para manter leve
+  Object.keys(dados).forEach(d => {
+    if(d !== dataHoje) delete dados[d];
+  });
+  localStorage.setItem("contador_provas_diarias", JSON.stringify(dados));
+  carregarContadorHoje();
+}
+
+function carregarHistorico7Dias(){
+  try{
+    const lista = JSON.parse(localStorage.getItem("historico_provas_7d") || "[]");
+    const seteDiasAtras = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    // Auto-expurgo preventivo: descarta o que for mais antigo que 7 dias
+    const filtrada = lista.filter(item => item.timestamp && item.timestamp >= seteDiasAtras);
+    if(filtrada.length !== lista.length){
+      localStorage.setItem("historico_provas_7d", JSON.stringify(filtrada));
+    }
+    return filtrada;
+  }catch(e){
+    console.warn("Erro ao ler histórico local:", e);
+    return [];
+  }
+}
+
+function salvarNoHistorico7Dias(atv){
+  try{
+    const lista = carregarHistorico7Dias();
+    // Armazena estrutura completa da atividade com timestamp para re-renderização instantânea
+    const novoRegistro = {
+      id: "atv_" + Date.now(),
+      timestamp: Date.now(),
+      dataStr: new Date().toLocaleDateString("pt-BR") + " às " + new Date().toLocaleTimeString("pt-BR", {hour:"2-digit", minute:"2-digit"}),
+      turma: atv.turma,
+      disciplina: atv.disciplina,
+      conteudo: atv.conteudo,
+      titulo: atv.titulo,
+      atividade: atv
+    };
+    lista.unshift(novoRegistro);
+    // Limita aos 20 itens mais recentes para não inflar localStorage
+    const limitada = lista.slice(0, 20);
+    localStorage.setItem("historico_provas_7d", JSON.stringify(limitada));
+    renderizarHistorico();
+  }catch(e){
+    console.warn("Falha ao salvar no histórico local de 7 dias:", e);
+  }
+}
+
+function carregarAtividadeDoHistorico(id){
+  const lista = carregarHistorico7Dias();
+  const encontrada = lista.find(it => it.id === id);
+  if(!encontrada || !encontrada.atividade) return;
+  
+  atividade = encontrada.atividade;
+  turmaSel = atividade.turma;
+  discSel = atividade.disciplina;
+  conteudoSel = atividade.conteudo;
+  
+  paginas = desenhar(atividade);
+  elPrev.innerHTML = "";
+  paginas.forEach(c => elPrev.appendChild(c));
+  estado(discSel, "ready", "Atividade pronta ✓");
+  btnBaixar.disabled = false;
+  btnRefazer.disabled = false;
+  msg(`Atividade recuperada do histórico (${encontrada.dataStr}): ${paginas.length} páginas prontas.`);
+  elPrev.scrollIntoView({behavior:"smooth", block:"start"});
+}
+
+function renderizarHistorico(){
+  const container = document.getElementById("historicoItems");
+  if(!container) return;
+  const lista = carregarHistorico7Dias();
+  if(!lista.length){
+    container.innerHTML = `<p style="padding:14px; text-align:center; color:#5b6f79; font-size:14px;">Nenhuma prova criada nos últimos 7 dias neste navegador.</p>`;
+    return;
+  }
+  
+  container.innerHTML = lista.map(it => `
+    <div class="historico-card">
+      <div class="historico-card-content">
+        <div class="historico-card-title">${it.titulo || it.conteudo}</div>
+        <div class="historico-card-meta">
+          <span>🏫 ${it.turma ? it.turma.replace(" Fundamental","") : ""}</span>
+          <span>📚 ${it.disciplina}</span>
+          <span>📅 ${it.dataStr}</span>
+        </div>
+      </div>
+      <button class="btn-recuperar" type="button" onclick="carregarAtividadeDoHistorico('${it.id}')">
+        👁️ Ver / Baixar PDF
+      </button>
+    </div>
+  `).join("");
+}
+
+// Inicializações de Interface para Contador e Histórico
+const btnToggleHistorico = document.getElementById("btnToggleHistorico");
+const historicoDrawer = document.getElementById("historicoDrawer");
+if(btnToggleHistorico && historicoDrawer){
+  btnToggleHistorico.onclick = () => {
+    historicoDrawer.hidden = !historicoDrawer.hidden;
+    if(!historicoDrawer.hidden){
+      renderizarHistorico();
+      historicoDrawer.scrollIntoView({behavior:"smooth", block:"nearest"});
+    }
+  };
+}
+
+carregarContadorHoje();
+renderizarHistorico();
 
 document.fonts && document.fonts.ready.then(()=>{});
 </script>
