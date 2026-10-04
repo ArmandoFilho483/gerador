@@ -297,7 +297,9 @@ async function chamarGemini(apiKey, corpo, aviso){
       }
 
       const txtErro = await resp.text();
-      if(resp.status === 400 || resp.status === 401 || resp.status === 403){
+      const ehErroChave = resp.status === 401 || resp.status === 403 || 
+        (resp.status === 400 && (txtErro.includes("API_KEY_INVALID") || txtErro.includes("API key not valid")));
+      if(ehErroChave){
         throw new Error("Chave inválida ou sem permissão para a API do Gemini. Verifique a chave inserida.");
       }
 
@@ -963,8 +965,6 @@ Responda somente em formato JSON rigoroso.`;
       },
       questoes:{
         type:"array",
-        minItems: 10,
-        maxItems: 10,
         items:{
           type:"object",
           properties:{
