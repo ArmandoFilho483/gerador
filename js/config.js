@@ -5,16 +5,20 @@
 const CHAVE_FIXA = ""; // Opcional: chave fixa local caso desejado
 const SETTINGS_PASSWORD = "prof2026"; // Senha do gestor para área restrita
 
-// Anel Circular de Modelos do Gemini (Round-Robin com Failover Imediato)
+// Anel Circular Canônico de Modelos Operacionais do Gemini (12 Modelos)
 const MODELOS_RESERVA = [
-  "gemini-2.5-flash",
+  "gemini-3.8-flash",
+  "gemini-3.7-flash",
+  "gemini-3.6-flash",
+  "gemini-3.5-flash",
+  "gemini-3.5-flash-lite",
+  "gemini-flash-latest",
+  "gemini-flash-lite-latest",
+  "gemini-3.1-flash-lite",
   "gemini-2.5-flash-lite",
-  "gemini-1.5-flash",
-  "gemini-1.5-flash-8b",
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
+  "gemini-2.5-flash",
   "gemini-2.5-pro",
-  "gemini-1.5-pro"
+  "gemini-pro-latest"
 ];
 const TOTAL_MODELOS = MODELOS_RESERVA.length;
 let indiceModeloAtual = 0; // Ponteiro persistente que se move em anel circular
