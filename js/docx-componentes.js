@@ -99,7 +99,12 @@ function criarCardQuestaoGabaritoWord(q, num){
   const { Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, WidthType, BorderStyle } = docx;
   if(!q) return new TableCell({ children: [] });
 
-  const letraCorreta = ["A","B","C","D","E"][q.correta] || "A";
+  let letraCorreta = "A";
+  if(typeof q.correta === "number"){
+    letraCorreta = ["A","B","C","D","E"][q.correta] || "A";
+  } else if(typeof q.correta === "string" && q.correta.trim()){
+    letraCorreta = q.correta.trim().toUpperCase().charAt(0);
+  }
 
   return new TableCell({
     width: { size: 50, type: WidthType.PERCENTAGE },

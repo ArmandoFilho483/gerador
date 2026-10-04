@@ -66,7 +66,7 @@ async function baixarDocx(){
   const {
     Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
     WidthType, AlignmentType, BorderStyle, SectionType, ImageRun,
-    Header, Footer, PageNumber
+    Header, Footer, PageNumber, ColumnBreak
   } = docx;
 
   const margem05cm = 284; // 0.5cm em twips
@@ -253,7 +253,7 @@ async function baixarDocx(){
     celulaTabelaChildren.push(
       new Paragraph({
         alignment: AlignmentType.LEFT,
-        spacing: { before: 80, after: 40 },
+        spacing: { before: 40, after: 30 },
         children: [
           new TextRun({ text: `TABELA: ${atividade.tabela.titulo}`, bold: true, size: 18, font: "Calibri", color: "0A5A4F" })
         ]
@@ -267,8 +267,8 @@ async function baixarDocx(){
           children: [
             new Paragraph({
               alignment: AlignmentType.LEFT,
-              margins: { left: 60 },
-              children: [new TextRun({ text: String(col), bold: true, size: 18, font: "Calibri", color: "FFFFFF" })]
+              margins: { left: 40, right: 40 },
+              children: [new TextRun({ text: String(col), bold: true, size: 16, font: "Calibri", color: "FFFFFF" })]
             })
           ],
           shading: { fill: "0F7A6B" }
@@ -283,8 +283,8 @@ async function baixarDocx(){
             children: [
               new Paragraph({
                 alignment: AlignmentType.LEFT,
-                margins: { left: 60 },
-                children: [new TextRun({ text: String(val), size: 18, font: "Calibri" })]
+                margins: { left: 40, right: 40 },
+                children: [new TextRun({ text: String(val), size: 16, font: "Calibri" })]
               })
             ],
             shading: { fill: rIdx % 2 === 0 ? "F8FAFC" : "FFFFFF" }
@@ -296,14 +296,14 @@ async function baixarDocx(){
     celulaTabelaChildren.push(
       new Table({
         rows: tableRows,
-        width: { size: 98, type: WidthType.PERCENTAGE }
+        width: { size: 100, type: WidthType.PERCENTAGE }
       })
     );
 
     celulaGraficoChildren.push(
       new Paragraph({
         alignment: AlignmentType.LEFT,
-        spacing: { before: 80, after: 40 },
+        spacing: { before: 40, after: 30 },
         children: [
           new TextRun({ text: `GRÁFICO: ${atividade.grafico.titulo}`, bold: true, size: 18, font: "Calibri", color: "0A5A4F" })
         ]
@@ -317,11 +317,11 @@ async function baixarDocx(){
         celulaGraficoChildren.push(
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { before: 20, after: 40 },
+            spacing: { before: 0, after: 20 },
             children: [
               new ImageRun({
                 data: imgBuffer,
-                transformation: { width: 260, height: 160 }
+                transformation: { width: 260, height: 145 }
               })
             ]
           })
@@ -453,11 +453,20 @@ async function baixarDocx(){
   for(let i = 0; i < atividade.questoes.length; i++){
     const q = atividade.questoes[i];
     
+    // Balanceamento de colunas: força transição para a 2ª coluna exatamente na metade das questões (questão 6)
+    if(i === 5){
+      conteudoSecao2.push(
+        new Paragraph({
+          children: [new ColumnBreak()]
+        })
+      );
+    }
+    
     // Enunciado Justificado, 11pt, com PULO DE 1 LINHA
     conteudoSecao2.push(
       new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
-        spacing: { before: i === 0 ? 0 : 240, after: 40, line: 250 },
+        spacing: { before: (i === 0 || i === 5) ? 0 : 240, after: 40, line: 250 },
         children: [
           new TextRun({ text: `${i + 1}. `, bold: true, size: font11pt, font: "Calibri", color: "0F7A6B" }),
           new TextRun({ text: q.enunciado, bold: true, size: font11pt, font: "Calibri", color: "20303A" })

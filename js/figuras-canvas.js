@@ -211,7 +211,7 @@ function desenharFiguraQuestao(ctx, fig, x, y, larg){
     ctx.textBaseline = "middle";
     ctx.fillText("12", centroX, centroY - raio + 15);
     ctx.fillText("3", centroX + raio - 14, centroY);
-    ctx.fillText("6", centroY + raio - 14, centroY);
+    ctx.fillText("6", centroX, centroY + raio - 14);
     ctx.fillText("9", centroX - raio + 14, centroY);
 
     // Ponteiros
