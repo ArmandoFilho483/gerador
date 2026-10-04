@@ -1123,26 +1123,49 @@ function novaPagina(){
 }
 
 function cabecalho(ctx, a, pag, total, semNome){
-  ctx.fillStyle="#0f7a6b"; ctx.fillRect(M,70,W-2*M,120);
-  ctx.fillStyle="#f2b544"; ctx.fillRect(M,70,12,120);
-  ctx.fillStyle="#ffffff";
-  ctx.font="800 40px Nunito, sans-serif";
-  ctx.fillText(a.disciplina.toUpperCase(), M+36, 122);
-  ctx.font="600 24px Nunito, sans-serif";
-  ctx.fillStyle="#d8f2ec";
-  ctx.fillText(a.turma, M+36, 160);
-  ctx.textAlign="right";
-  ctx.font="700 20px Nunito, sans-serif";
-  ctx.fillText("Folha " + pag + "/" + total, W-M-24, 160);
-  ctx.textAlign="left";
+  // PÁGINA 1: Cabeçalho Completo com Bloco Institucional e Identificação do Aluno
+  if(pag === 1){
+    ctx.fillStyle="#0f7a6b"; ctx.fillRect(M,70,W-2*M,120);
+    ctx.fillStyle="#f2b544"; ctx.fillRect(M,70,12,120);
+    ctx.fillStyle="#ffffff";
+    ctx.font="800 40px Nunito, sans-serif";
+    ctx.fillText(a.disciplina.toUpperCase(), M+36, 122);
+    ctx.font="600 24px Nunito, sans-serif";
+    ctx.fillStyle="#d8f2ec";
+    ctx.fillText(a.turma, M+36, 160);
+    ctx.textAlign="right";
+    ctx.font="700 20px Nunito, sans-serif";
+    ctx.fillText("Folha " + pag + "/" + total, W-M-24, 160);
+    ctx.textAlign="left";
 
-  if(semNome) return 262;
-  ctx.strokeStyle="#c9c0ae"; ctx.lineWidth=2;
-  ctx.font="600 20px Nunito, sans-serif"; ctx.fillStyle="#3a4a52";
-  ctx.fillText("Nome:", M, 236);
-  linha(ctx, M+70, 240, W-M-300, 240);
-  ctx.fillText("Data: ___/___/_____", W-M-210, 236);
-  return 292;
+    if(semNome) return 262;
+    ctx.strokeStyle="#c9c0ae"; ctx.lineWidth=2;
+    ctx.font="600 20px Nunito, sans-serif"; ctx.fillStyle="#3a4a52";
+    ctx.fillText("Nome:", M, 236);
+    linha(ctx, M+70, 240, W-M-300, 240);
+    ctx.fillText("Data: ___/___/_____", W-M-210, 236);
+    return 292;
+  }
+
+  // PÁGINAS SEGUINTES (2+): Cabeçalho Editorial Compacto de Livro Profissional
+  // Disciplina à esquerda, Turma e Folha à direita + Linha Divisória Horizontal
+  ctx.fillStyle = "#0f7a6b";
+  ctx.font = "800 22px Nunito, sans-serif";
+  ctx.fillText(a.disciplina.toUpperCase(), M, 65);
+
+  ctx.textAlign = "right";
+  ctx.font = "600 19px Nunito, sans-serif";
+  ctx.fillStyle = "#64748b";
+  ctx.fillText(a.turma + "   ·   Folha " + pag + "/" + total, W-M, 65);
+  ctx.textAlign = "left";
+
+  // Linha horizontal divisória separando o cabeçalho do corpo da prova
+  ctx.strokeStyle = "#cbd5e1";
+  ctx.lineWidth = 1.5;
+  linha(ctx, M, 80, W-M, 80);
+
+  // Retorna y reduzido (apenas 115px em vez de 292px), liberando 177px de espaço útil!
+  return 115;
 }
 
 function linha(ctx,x1,y1,x2,y2){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
@@ -2182,7 +2205,7 @@ function desenhar(a){
   const paginasDados=[];
   while(idx < blocos.length){
     const primeira=paginasDados.length===0;
-    const grupo=[]; let y=292+(primeira?intro.altura:0);
+    const grupo=[]; let y=(primeira ? 292 + intro.altura : 115);
     while(idx<blocos.length && y + blocos[idx].altura < H-120){ grupo.push(blocos[idx]); y+=blocos[idx].altura; idx++; }
     if(!grupo.length){ grupo.push(blocos[idx]); idx++; }
     paginasDados.push({grupo,primeira});
@@ -2396,7 +2419,8 @@ async function baixarDocx(){
 
   const {
     Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
-    WidthType, AlignmentType, BorderStyle, HeadingLevel, SectionType, ImageRun
+    WidthType, AlignmentType, BorderStyle, HeadingLevel, SectionType, ImageRun,
+    Header, Footer, PageNumber
   } = docx;
 
   // Conversão de medidas:
@@ -2406,6 +2430,81 @@ async function baixarDocx(){
   const font11pt = 22;
   const fontHeaderPt = 24; // 12pt
   const fontTitlePt = 32;  // 16pt
+
+  // Cabeçalho Nativo do Word para Páginas Seguintes (2+)
+  // Disciplina à esquerda, Turma à direita + Linha divisória horizontal
+  const cabecalhoWordPaginasSeguintes = new Header({
+    children: [
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          left: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          right: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          insideVertical: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: "94A3B8" }
+        },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE },
+                  right: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.SINGLE, size: 6, color: "94A3B8" }
+                },
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.LEFT,
+                    spacing: { after: 60 },
+                    children: [
+                      new TextRun({ text: atividade.disciplina.toUpperCase(), bold: true, size: 20, font: "Calibri", color: "0F7A6B" })
+                    ]
+                  })
+                ]
+              }),
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE },
+                  right: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.SINGLE, size: 6, color: "94A3B8" }
+                },
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.RIGHT,
+                    spacing: { after: 60 },
+                    children: [
+                      new TextRun({ text: atividade.turma, size: 18, font: "Calibri", color: "64748B" })
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  });
+
+  // Rodapé Nativo do Word (Linha divisória e Contagem dinâmica de Páginas)
+  const rodapeWordPaginas = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        spacing: { before: 80 },
+        border: {
+          top: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" }
+        },
+        children: [
+          new TextRun({ text: "Página ", size: 18, font: "Calibri", color: "64748B" }),
+          new TextRun({ children: [PageNumber.CURRENT], size: 18, font: "Calibri", bold: true, color: "0F7A6B" }),
+          new TextRun({ text: " de ", size: 18, font: "Calibri", color: "64748B" }),
+          new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 18, font: "Calibri", bold: true, color: "0F7A6B" })
+        ]
+      })
+    ]
+  });
 
   const secoes = [];
 
@@ -2589,9 +2688,16 @@ async function baixarDocx(){
   secoes.push({
     properties: {
       type: SectionType.CONTINUOUS,
+      titlePage: true, // Primeira página diferente: não mostra o cabeçalho no topo da folha 1
       page: {
         margin: { top: margem05cm, bottom: margem05cm, left: margem05cm, right: margem05cm }
       }
+    },
+    headers: {
+      default: cabecalhoWordPaginasSeguintes
+    },
+    footers: {
+      default: rodapeWordPaginas
     },
     children: conteudoSecao1
   });
@@ -2706,6 +2812,12 @@ async function baixarDocx(){
         separate: true   // LINHA NO MEIO FORNECIDA PELO WORD
       }
     },
+    headers: {
+      default: cabecalhoWordPaginasSeguintes
+    },
+    footers: {
+      default: rodapeWordPaginas
+    },
     children: conteudoSecao2
   });
 
@@ -2754,6 +2866,12 @@ async function baixarDocx(){
       page: {
         margin: { top: margem05cm, bottom: margem05cm, left: margem05cm, right: margem05cm }
       }
+    },
+    headers: {
+      default: cabecalhoWordPaginasSeguintes
+    },
+    footers: {
+      default: rodapeWordPaginas
     },
     children: conteudoSecao3
   });
