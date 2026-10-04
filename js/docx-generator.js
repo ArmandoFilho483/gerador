@@ -21,9 +21,12 @@ async function canvasParaUint8Array(canvas){
 
 function gerarImagemGraficoCanvas(grafico){
   if(!grafico || !grafico.dados || !grafico.dados.length) return null;
+  if(typeof gerarImagemGraficoEstatisticoCanvas === "function"){
+    return gerarImagemGraficoEstatisticoCanvas(grafico);
+  }
   const c = document.createElement("canvas");
   c.width = 650;
-  c.height = 240;
+  c.height = 250;
   const ctx = c.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, c.width, c.height);
@@ -34,19 +37,20 @@ function gerarImagemGraficoCanvas(grafico){
 function gerarImagemFiguraQuestaoCanvas(figura){
   if(!figuraPossuiDadosValidos(figura)) return null;
   const c = document.createElement("canvas");
-  c.width = 650;
+  c.width = 700;
   
-  let h = 140;
-  if(figura.tipo === "relogio" || figura.tipo === "rosa_dos_ventos") h = 180;
-  else if(figura.tipo === "forma_geometrica" || figura.tipo === "mini_grafico") h = 165;
-  else if(figura.tipo === "baloes_dialogo") h = 150;
-  else if(figura.tipo === "cadeia_alimentar" || figura.tipo === "reta_numerica") h = 110;
+  let h = 180;
+  if(figura.tipo === "relogio" || figura.tipo === "rosa_dos_ventos") h = 210;
+  else if(figura.tipo === "forma_geometrica") h = 190;
+  else if(figura.tipo === "mini_grafico") h = 200;
+  else if(figura.tipo === "baloes_dialogo") h = 170;
+  else if(figura.tipo === "cadeia_alimentar" || figura.tipo === "reta_numerica") h = 140;
   
   c.height = h;
   const ctx = c.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, c.width, c.height);
-  desenharFiguraQuestao(ctx, figura, 10, 5, c.width - 20);
+  desenharFiguraQuestao(ctx, figura, 15, 8, c.width - 30);
   return c;
 }
 
@@ -155,95 +159,11 @@ async function baixarDocx(){
 
   const secoes = [];
 
-  function criarBlocoCabecalhoWord(totalFolhasStr, ehGabarito = false){
-    const elementos = [];
-    elementos.push(
-      new Table({
-        width: { size: 100, type: WidthType.PERCENTAGE },
-        borders: {
-          top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
-          right: { style: BorderStyle.NONE },
-          left: { style: BorderStyle.SINGLE, size: 24, color: "F2B544" }
-        },
-        rows: [
-          new TableRow({
-            children: [
-              new TableCell({
-                shading: { fill: "0F7A6B" },
-                margins: { top: 140, bottom: 140, left: 200, right: 200 },
-                children: [
-                  new Paragraph({
-                    alignment: AlignmentType.LEFT,
-                    spacing: { after: 40 },
-                    children: [
-                      new TextRun({ text: atividade.disciplina.toUpperCase(), bold: true, size: 36, font: "Calibri", color: "FFFFFF" }),
-                    ]
-                  }),
-                  new Table({
-                    width: { size: 100, type: WidthType.PERCENTAGE },
-                    borders: {
-                      top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
-                      left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }
-                    },
-                    rows: [
-                      new TableRow({
-                        children: [
-                          new TableCell({
-                            width: { size: 70, type: WidthType.PERCENTAGE },
-                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                            children: [
-                              new Paragraph({
-                                alignment: AlignmentType.LEFT,
-                                children: [
-                                  new TextRun({ text: atividade.turma, bold: true, size: 22, font: "Calibri", color: "D8F2EC" })
-                                ]
-                              })
-                            ]
-                          }),
-                          new TableCell({
-                            width: { size: 30, type: WidthType.PERCENTAGE },
-                            borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                            children: [
-                              new Paragraph({
-                                alignment: AlignmentType.RIGHT,
-                                children: [
-                                  new TextRun({ text: totalFolhasStr, bold: true, size: 20, font: "Calibri", color: "FFFFFF" })
-                                ]
-                              })
-                            ]
-                          })
-                        ]
-                      })
-                    ]
-                  })
-                ]
-              })
-            ]
-          })
-        ]
-      })
-    );
-
-    if(!ehGabarito){
-      elementos.push(
-        new Paragraph({
-          alignment: AlignmentType.LEFT,
-          spacing: { before: 140, after: 120 },
-          children: [
-            new TextRun({ text: "Nome: _________________________________________________________________   Data: ____/____/________", size: 20, font: "Calibri", color: "3A4A52" })
-          ]
-        })
-      );
-    }
-
-    return elementos;
-  }
-
   // ==========================================
   // SEÇÃO 1: CABEÇALHO, INTRODUÇÃO E DADOS LADO A LADO (1 COLUNA)
   // ==========================================
   const conteudoSecao1 = [];
-  conteudoSecao1.push(...criarBlocoCabecalhoWord("Folha 1", false));
+  conteudoSecao1.push(...criarBlocoCabecalhoWord("Folha 1", false, atividade));
 
   conteudoSecao1.push(
     new Paragraph({
@@ -551,9 +471,14 @@ async function baixarDocx(){
         const canvasFig = gerarImagemFiguraQuestaoCanvas(q.figura);
         if(canvasFig){
           const imgFigBuffer = await canvasParaUint8Array(canvasFig);
-          let figW = 230, figH = 65;
-          if(q.figura.tipo === "relogio" || q.figura.tipo === "rosa_dos_ventos"){ figW = 210; figH = 80; }
-          else if(q.figura.tipo === "forma_geometrica" || q.figura.tipo === "mini_grafico"){ figW = 225; figH = 70; }
+          let figW = 240, figH = 75;
+          if(q.figura.tipo === "relogio" || q.figura.tipo === "rosa_dos_ventos"){ figW = 220; figH = 88; }
+          else if(q.figura.tipo === "forma_geometrica"){ figW = 230; figH = 80; }
+          else if(q.figura.tipo === "mini_grafico"){ figW = 245; figH = 85; }
+          else if(q.figura.tipo === "regua" || q.figura.tipo === "reta_numerica"){ figW = 250; figH = 65; }
+          else if(q.figura.tipo === "termometro"){ figW = 210; figH = 80; }
+          else if(q.figura.tipo === "malha_quadriculada" || q.figura.tipo === "transferidor_angulo"){ figW = 235; figH = 82; }
+          else if(q.figura.tipo === "tirinha_quadrinhos" || q.figura.tipo === "chaveamento_torneio"){ figW = 255; figH = 88; }
           
           conteudoSecao2.push(
             new Paragraph({
@@ -616,7 +541,7 @@ async function baixarDocx(){
   // SEÇÃO 3: FOLHA DO PROFESSOR · GABARITO OFICIAL (EM FOLHA SEPARADA NEXT_PAGE)
   // ==========================================
   const conteudoSecao3 = [];
-  conteudoSecao3.push(...criarBlocoCabecalhoWord("Folha 4/4", true));
+  conteudoSecao3.push(...criarBlocoCabecalhoWord("Folha 4/4", true, atividade));
 
   // Faixa Laranja do Gabarito Oficial
   conteudoSecao3.push(
@@ -654,65 +579,11 @@ async function baixarDocx(){
     const qEsq = atividade.questoes[r * 2];
     const qDir = atividade.questoes[r * 2 + 1];
 
-    function criarCardQuestaoGabarito(q, num){
-      if(!q) return new TableCell({ children: [] });
-      return new TableCell({
-        width: { size: 50, type: WidthType.PERCENTAGE },
-        borders: {
-          top: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
-          bottom: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
-          left: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
-          right: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" }
-        },
-        shading: { fill: "F8FAFC" },
-        margins: { top: 60, bottom: 60, left: 120, right: 120 },
-        children: [
-          new Table({
-            width: { size: 100, type: WidthType.PERCENTAGE },
-            borders: {
-              top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
-              left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }
-            },
-            rows: [
-              new TableRow({
-                children: [
-                  new TableCell({
-                    width: { size: 70, type: WidthType.PERCENTAGE },
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [
-                      new Paragraph({
-                        alignment: AlignmentType.LEFT,
-                        children: [
-                          new TextRun({ text: `Questão ${num}`, bold: true, size: 22, font: "Calibri", color: "20303A" })
-                        ]
-                      })
-                    ]
-                  }),
-                  new TableCell({
-                    width: { size: 30, type: WidthType.PERCENTAGE },
-                    borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
-                    children: [
-                      new Paragraph({
-                        alignment: AlignmentType.RIGHT,
-                        children: [
-                          new TextRun({ text: ` ● ${q.correta}`, bold: true, size: 22, font: "Calibri", color: "0F7A6B" })
-                        ]
-                      })
-                    ]
-                  })
-                ]
-              })
-            ]
-          })
-        ]
-      });
-    }
-
     linhasGabarito.push(
       new TableRow({
         children: [
-          criarCardQuestaoGabarito(qEsq, r * 2 + 1),
-          criarCardQuestaoGabarito(qDir, r * 2 + 2)
+          criarCardQuestaoGabaritoWord(qEsq, r * 2 + 1),
+          criarCardQuestaoGabaritoWord(qDir, r * 2 + 2)
         ]
       })
     );

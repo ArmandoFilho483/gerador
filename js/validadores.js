@@ -57,6 +57,21 @@ function figuraPossuiDadosValidos(fig){
     case "quadro_reflexivo":
       return Boolean(fig.colunaA && fig.textoA);
 
+    case "termometro":
+      return fig.temperatura !== undefined && !isNaN(Number(fig.temperatura));
+
+    case "malha_quadriculada":
+      return true; // Grade e figura autocontidas
+
+    case "transferidor_angulo":
+      return fig.angulo !== undefined && !isNaN(Number(fig.angulo));
+
+    case "tirinha_quadrinhos":
+      return Boolean(fig.fala1 || (Array.isArray(fig.quadros) && fig.quadros.length >= 1));
+
+    case "chaveamento_torneio":
+      return true; // Diagrama esportivo completo e autocontido
+
     default:
       return false;
   }

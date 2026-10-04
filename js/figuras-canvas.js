@@ -94,74 +94,10 @@ function desenharGrafico(ctx, g, x, y, larg){
     y += 24;
   }
 
-  // Fundo suave do gráfico
-  ctx.fillStyle = "#fdfbf7";
-  ctx.fillRect(x, y, wGrafico, hGrafico);
-  ctx.strokeStyle = "#e2d9c8";
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(x, y, wGrafico, hGrafico);
-
-  const valores = g.dados.map(d=>Number(d.valor)||0);
-  const maxVal = Math.max(...valores, 10);
-  const escalaMax = Math.ceil(maxVal * 1.15);
-
-  const origemX = x + margemEsq;
-  const origemY = y + hGrafico - margemInf;
-
-  // Eixos X e Y
-  ctx.strokeStyle = "#20303a";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(origemX, y + 15);
-  ctx.lineTo(origemX, origemY);
-  ctx.lineTo(origemX + wEfetivo, origemY);
-  ctx.stroke();
-
-  // Linhas guia horizontais e valores do eixo Y
-  ctx.font = "600 14px Nunito, sans-serif";
-  ctx.fillStyle = "#6d7f89";
-  for(let i=0; i<=4; i++){
-    const valLinha = Math.round((escalaMax / 4) * i);
-    const yPos = origemY - (hEfetivo / 4) * i;
-    ctx.strokeStyle = "#e8e1d3";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(origemX, yPos);
-    ctx.lineTo(origemX + wEfetivo, yPos);
-    ctx.stroke();
-    ctx.textAlign = "right";
-    ctx.fillText(String(valLinha), origemX - 10, yPos + 5);
+  // Delega para o motor modular estatístico especializado
+  if(typeof desenharGraficoEstatistico === "function"){
+    return desenharGraficoEstatistico(ctx, g, x, y, wGrafico, hGrafico);
   }
-  ctx.textAlign = "left";
-
-  // Barras
-  const numBarras = g.dados.length;
-  const espacoBarra = wEfetivo / numBarras;
-  const larguraBarra = Math.min(espacoBarra * 0.65, 50);
-  const coresBarras = ["#0f7a6b", "#e4572e", "#f2b544", "#3b82f6", "#8b5cf6", "#10b981"];
-
-  g.dados.forEach((d, idx)=>{
-    const valor = Number(d.valor) || 0;
-    const hBarra = (valor / escalaMax) * hEfetivo;
-    const xBarra = origemX + idx * espacoBarra + (espacoBarra - larguraBarra) / 2;
-    const yBarra = origemY - hBarra;
-
-    ctx.fillStyle = coresBarras[idx % coresBarras.length];
-    ctx.fillRect(xBarra, yBarra, larguraBarra, hBarra);
-
-    // Valor acima da barra
-    ctx.font = "800 15px Nunito, sans-serif";
-    ctx.fillStyle = "#20303a";
-    ctx.textAlign = "center";
-    ctx.fillText(String(valor), xBarra + larguraBarra/2, yBarra - 6);
-
-    // Rótulo abaixo da barra
-    ctx.font = "700 13px Nunito, sans-serif";
-    ctx.fillStyle = "#334155";
-    const rotuloCurto = String(d.rotulo || "").slice(0, 10);
-    ctx.fillText(rotuloCurto, xBarra + larguraBarra/2, origemY + 20);
-  });
-  ctx.textAlign = "left";
 
   return y + hGrafico + 20;
 }
@@ -372,6 +308,16 @@ function desenharFiguraQuestao(ctx, fig, x, y, larg){
   }
 
   if(tipo === "mini_grafico"){
+    const subTipo = String(fig.tipoGrafico || "colunas").toLowerCase();
+    const dadosGrafico = {
+      tipoGrafico: subTipo,
+      dados: fig.rotulos.map((rot, i) => ({ rotulo: rot, valor: fig.valores[i] }))
+    };
+
+    if(typeof desenharGraficoEstatistico === "function"){
+      return desenharGraficoEstatistico(ctx, dadosGrafico, x, y, larg, 140);
+    }
+
     const hBox = 135;
     ctx.fillStyle = "#fafcfc";
     ctx.fillRect(x, y, larg, hBox);
@@ -920,6 +866,263 @@ function desenharFiguraQuestao(ctx, fig, x, y, larg){
     ctx.fillStyle = "#1e293b"; ctx.font = "600 15px Nunito, sans-serif";
     ctx.fillText(t2.slice(0, 45), x + 42 + cAW, y + 68);
 
+    return y + hBox + 26;
+  }
+
+  // 16. TERMÔMETRO GRADUADO (Ciências / Geografia / Matemática)
+  if(tipo === "termometro"){
+    const hBox = 145;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const temp = Number(fig.temperatura ?? 25);
+    const minT = Number(fig.tempMin ?? 0);
+    const maxT = Number(fig.tempMax ?? 50);
+    const centroX = x + larg / 2;
+    const baseY = y + hBox - 30;
+    const topoY = y + 25;
+    const hTubo = baseY - topoY;
+
+    // Tubo de vidro
+    ctx.strokeStyle = "#94a3b8";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.moveTo(centroX, topoY);
+    ctx.lineTo(centroX, baseY);
+    ctx.stroke();
+
+    // Bulbo inferior
+    ctx.fillStyle = "#dc2626";
+    ctx.beginPath();
+    ctx.arc(centroX, baseY + 6, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Coluna vermelha de líquido proporcional
+    const pct = Math.max(0, Math.min(1, (temp - minT) / (maxT - minT || 1)));
+    const yColuna = baseY - pct * hTubo;
+    ctx.strokeStyle = "#dc2626";
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(centroX, baseY);
+    ctx.lineTo(centroX, yColuna);
+    ctx.stroke();
+
+    // Escala de marcas à direita
+    ctx.font = "700 12px Nunito, sans-serif";
+    ctx.fillStyle = "#334155";
+    ctx.textAlign = "left";
+    for(let t = minT; t <= maxT; t += 10){
+      const yt = baseY - ((t - minT) / (maxT - minT)) * hTubo;
+      linha(ctx, centroX + 6, yt, centroX + 14, yt);
+      ctx.fillText(`${t}°C`, centroX + 18, yt + 4);
+    }
+
+    // Leitura em destaque à esquerda
+    ctx.fillStyle = "#dc2626";
+    ctx.font = "800 16px Nunito, sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText(`${temp}°C`, centroX - 16, yColuna + 5);
+
+    ctx.textAlign = "left";
+    return y + hBox + 26;
+  }
+
+  // 17. MALHA QUADRICULADA (Geometria / Área / Perímetro)
+  if(tipo === "malha_quadriculada"){
+    const hBox = 145;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const tamQuad = 20;
+    const cols = 8;
+    const lin = 5;
+    const wMalha = cols * tamQuad;
+    const hMalha = lin * tamQuad;
+    const startX = x + (larg - wMalha) / 2;
+    const startY = y + (hBox - hMalha) / 2;
+
+    // Linhas da grade quadriculada
+    ctx.strokeStyle = "#cbd5e1";
+    ctx.lineWidth = 1;
+    for(let c = 0; c <= cols; c++){
+      linha(ctx, startX + c * tamQuad, startY, startX + c * tamQuad, startY + hMalha);
+    }
+    for(let l = 0; l <= lin; l++){
+      linha(ctx, startX, startY + l * tamQuad, startX + wMalha, startY + l * tamQuad);
+    }
+
+    // Figura destacada na malha (ex: retângulo 4x3)
+    const fLarg = Math.min(cols, Number(fig.larguraQuad || 4));
+    const fAlt = Math.min(lin, Number(fig.alturaQuad || 3));
+    ctx.fillStyle = "rgba(15, 122, 107, 0.4)";
+    ctx.fillRect(startX + tamQuad, startY + tamQuad, fLarg * tamQuad, fAlt * tamQuad);
+    ctx.strokeStyle = "#0f7a6b";
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(startX + tamQuad, startY + tamQuad, fLarg * tamQuad, fAlt * tamQuad);
+
+    // Legenda da unidade
+    ctx.font = "700 12px Nunito, sans-serif";
+    ctx.fillStyle = "#0f7a6b";
+    ctx.textAlign = "center";
+    ctx.fillText("Cada ■ = 1 unidade de área (1 cm²)", x + larg / 2, y + hBox - 6);
+
+    ctx.textAlign = "left";
+    return y + hBox + 26;
+  }
+
+  // 18. TRANSFERIDOR ESCOLAR COM ÂNGULO (Geometria / Medidas)
+  if(tipo === "transferidor_angulo"){
+    const hBox = 145;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const anguloGraus = Math.min(180, Math.max(10, Number(fig.angulo ?? 60)));
+    const centroX = x + larg / 2;
+    const centroY = y + hBox - 25;
+    const raio = 80;
+
+    // Semicírculo base do transferidor
+    ctx.fillStyle = "rgba(226, 232, 240, 0.5)";
+    ctx.beginPath();
+    ctx.arc(centroX, centroY, raio, Math.PI, 0, false);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#64748b";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Reta de base (0° a 180°)
+    linha(ctx, centroX - raio, centroY, centroX + raio, centroY);
+
+    // Reta do ângulo
+    const rad = (anguloGraus * Math.PI) / 180;
+    const xPonta = centroX + Math.cos(-rad) * raio;
+    const yPonta = centroY + Math.sin(-rad) * raio;
+    ctx.strokeStyle = "#e4572e";
+    ctx.lineWidth = 3;
+    linha(ctx, centroX, centroY, xPonta, yPonta);
+
+    // Arco do ângulo com texto
+    ctx.strokeStyle = "#0f7a6b";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(centroX, centroY, 30, -rad, 0);
+    ctx.stroke();
+
+    ctx.fillStyle = "#0f7a6b";
+    ctx.font = "800 14px Nunito, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(`${anguloGraus}°`, centroX + 45, centroY - 14);
+
+    ctx.textAlign = "left";
+    return y + hBox + 26;
+  }
+
+  // 19. TIRINHA EM QUADRINHOS (Português / Inglês / Formação Cidadã)
+  if(tipo === "tirinha_quadrinhos"){
+    const hBox = 145;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const quadros = fig.quadros || [
+      { fala: fig.fala1 || "Olá! Você viu a novidade?", perso: "Personagem 1" },
+      { fala: fig.fala2 || "Sim! Estamos aprendendo muito!", perso: "Personagem 2" }
+    ];
+    const n = Math.min(3, quadros.length);
+    const espacoQ = (larg - 40 - (n - 1) * 12) / n;
+    const hQ = hBox - 28;
+
+    quadros.slice(0, n).forEach((qItem, idx) => {
+      const qx = x + 20 + idx * (espacoQ + 12);
+      const qy = y + 14;
+
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(qx, qy, espacoQ, hQ);
+      ctx.strokeStyle = "#334155";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(qx, qy, espacoQ, hQ);
+
+      // Balão de fala
+      ctx.fillStyle = "#f1f5f9";
+      ctx.fillRect(qx + 8, qy + 8, espacoQ - 16, 48);
+      ctx.strokeStyle = "#64748b";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(qx + 8, qy + 8, espacoQ - 16, 48);
+
+      ctx.fillStyle = "#1e293b";
+      ctx.font = "600 11px Nunito, sans-serif";
+      const textoFala = String(qItem.fala || "").slice(0, 45);
+      ctx.fillText(textoFala, qx + 12, qy + 26);
+
+      // Rótulo do personagem no rodapé do quadro
+      ctx.font = "800 11px Nunito, sans-serif";
+      ctx.fillStyle = "#0f7a6b";
+      ctx.fillText(String(qItem.perso || `Quadro ${idx + 1}`), qx + 12, qy + hQ - 10);
+    });
+
+    return y + hBox + 26;
+  }
+
+  // 20. CHAVEAMENTO ESPORTIVO (Educação Física / Torneios)
+  if(tipo === "chaveamento_torneio"){
+    const hBox = 145;
+    ctx.fillStyle = "#fafcfc";
+    ctx.fillRect(x, y, larg, hBox);
+    ctx.strokeStyle = "#dbe5e4";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x, y, larg, hBox);
+
+    const times = fig.times || ["Equipe A", "Equipe B", "Equipe C", "Equipe D"];
+    const wBoxTime = 90;
+    const hBoxTime = 22;
+    const startX = x + 30;
+
+    // Semifinais
+    ctx.font = "700 11px Nunito, sans-serif";
+    ctx.textAlign = "center";
+    times.slice(0, 4).forEach((tm, i) => {
+      const ty = y + 18 + i * 28;
+      ctx.fillStyle = "#f0fdf4";
+      ctx.fillRect(startX, ty, wBoxTime, hBoxTime);
+      ctx.strokeStyle = "#0f7a6b";
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(startX, ty, wBoxTime, hBoxTime);
+      ctx.fillStyle = "#0f7a6b";
+      ctx.fillText(String(tm).slice(0, 12), startX + wBoxTime / 2, ty + 15);
+    });
+
+    // Linhas de conexão
+    ctx.strokeStyle = "#64748b";
+    ctx.lineWidth = 1.5;
+    linha(ctx, startX + wBoxTime, y + 29, startX + wBoxTime + 20, y + 29);
+    linha(ctx, startX + wBoxTime, y + 57, startX + wBoxTime + 20, y + 57);
+    linha(ctx, startX + wBoxTime + 20, y + 29, startX + wBoxTime + 20, y + 57);
+    linha(ctx, startX + wBoxTime + 20, y + 43, startX + wBoxTime + 45, y + 43);
+
+    // Caixa da Grande Final
+    const finalX = startX + wBoxTime + 45;
+    const finalY = y + 32;
+    ctx.fillStyle = "#fef3c7";
+    ctx.fillRect(finalX, finalY, 110, 24);
+    ctx.strokeStyle = "#d97706";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(finalX, finalY, 110, 24);
+    ctx.fillStyle = "#b45309";
+    ctx.fillText("🏆 GRANDE FINAL", finalX + 55, finalY + 16);
+
+    ctx.textAlign = "left";
     return y + hBox + 26;
   }
 
