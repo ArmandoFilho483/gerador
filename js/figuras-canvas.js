@@ -94,74 +94,10 @@ function desenharGrafico(ctx, g, x, y, larg){
     y += 24;
   }
 
-  // Fundo suave do gráfico
-  ctx.fillStyle = "#fdfbf7";
-  ctx.fillRect(x, y, wGrafico, hGrafico);
-  ctx.strokeStyle = "#e2d9c8";
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(x, y, wGrafico, hGrafico);
-
-  const valores = g.dados.map(d=>Number(d.valor)||0);
-  const maxVal = Math.max(...valores, 10);
-  const escalaMax = Math.ceil(maxVal * 1.15);
-
-  const origemX = x + margemEsq;
-  const origemY = y + hGrafico - margemInf;
-
-  // Eixos X e Y
-  ctx.strokeStyle = "#20303a";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(origemX, y + 15);
-  ctx.lineTo(origemX, origemY);
-  ctx.lineTo(origemX + wEfetivo, origemY);
-  ctx.stroke();
-
-  // Linhas guia horizontais e valores do eixo Y
-  ctx.font = "600 14px Nunito, sans-serif";
-  ctx.fillStyle = "#6d7f89";
-  for(let i=0; i<=4; i++){
-    const valLinha = Math.round((escalaMax / 4) * i);
-    const yPos = origemY - (hEfetivo / 4) * i;
-    ctx.strokeStyle = "#e8e1d3";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(origemX, yPos);
-    ctx.lineTo(origemX + wEfetivo, yPos);
-    ctx.stroke();
-    ctx.textAlign = "right";
-    ctx.fillText(String(valLinha), origemX - 10, yPos + 5);
+  // Delega para o motor modular estatístico especializado
+  if(typeof desenharGraficoEstatistico === "function"){
+    return desenharGraficoEstatistico(ctx, g, x, y, wGrafico, hGrafico);
   }
-  ctx.textAlign = "left";
-
-  // Barras
-  const numBarras = g.dados.length;
-  const espacoBarra = wEfetivo / numBarras;
-  const larguraBarra = Math.min(espacoBarra * 0.65, 50);
-  const coresBarras = ["#0f7a6b", "#e4572e", "#f2b544", "#3b82f6", "#8b5cf6", "#10b981"];
-
-  g.dados.forEach((d, idx)=>{
-    const valor = Number(d.valor) || 0;
-    const hBarra = (valor / escalaMax) * hEfetivo;
-    const xBarra = origemX + idx * espacoBarra + (espacoBarra - larguraBarra) / 2;
-    const yBarra = origemY - hBarra;
-
-    ctx.fillStyle = coresBarras[idx % coresBarras.length];
-    ctx.fillRect(xBarra, yBarra, larguraBarra, hBarra);
-
-    // Valor acima da barra
-    ctx.font = "800 15px Nunito, sans-serif";
-    ctx.fillStyle = "#20303a";
-    ctx.textAlign = "center";
-    ctx.fillText(String(valor), xBarra + larguraBarra/2, yBarra - 6);
-
-    // Rótulo abaixo da barra
-    ctx.font = "700 13px Nunito, sans-serif";
-    ctx.fillStyle = "#334155";
-    const rotuloCurto = String(d.rotulo || "").slice(0, 10);
-    ctx.fillText(rotuloCurto, xBarra + larguraBarra/2, origemY + 20);
-  });
-  ctx.textAlign = "left";
 
   return y + hGrafico + 20;
 }
@@ -372,6 +308,16 @@ function desenharFiguraQuestao(ctx, fig, x, y, larg){
   }
 
   if(tipo === "mini_grafico"){
+    const subTipo = String(fig.tipoGrafico || "colunas").toLowerCase();
+    const dadosGrafico = {
+      tipoGrafico: subTipo,
+      dados: fig.rotulos.map((rot, i) => ({ rotulo: rot, valor: fig.valores[i] }))
+    };
+
+    if(typeof desenharGraficoEstatistico === "function"){
+      return desenharGraficoEstatistico(ctx, dadosGrafico, x, y, larg, 140);
+    }
+
     const hBox = 135;
     ctx.fillStyle = "#fafcfc";
     ctx.fillRect(x, y, larg, hBox);

@@ -21,9 +21,12 @@ async function canvasParaUint8Array(canvas){
 
 function gerarImagemGraficoCanvas(grafico){
   if(!grafico || !grafico.dados || !grafico.dados.length) return null;
+  if(typeof gerarImagemGraficoEstatisticoCanvas === "function"){
+    return gerarImagemGraficoEstatisticoCanvas(grafico);
+  }
   const c = document.createElement("canvas");
   c.width = 650;
-  c.height = 240;
+  c.height = 250;
   const ctx = c.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, c.width, c.height);
@@ -34,19 +37,20 @@ function gerarImagemGraficoCanvas(grafico){
 function gerarImagemFiguraQuestaoCanvas(figura){
   if(!figuraPossuiDadosValidos(figura)) return null;
   const c = document.createElement("canvas");
-  c.width = 650;
+  c.width = 700;
   
-  let h = 140;
-  if(figura.tipo === "relogio" || figura.tipo === "rosa_dos_ventos") h = 180;
-  else if(figura.tipo === "forma_geometrica" || figura.tipo === "mini_grafico") h = 165;
-  else if(figura.tipo === "baloes_dialogo") h = 150;
-  else if(figura.tipo === "cadeia_alimentar" || figura.tipo === "reta_numerica") h = 110;
+  let h = 180;
+  if(figura.tipo === "relogio" || figura.tipo === "rosa_dos_ventos") h = 210;
+  else if(figura.tipo === "forma_geometrica") h = 190;
+  else if(figura.tipo === "mini_grafico") h = 200;
+  else if(figura.tipo === "baloes_dialogo") h = 170;
+  else if(figura.tipo === "cadeia_alimentar" || figura.tipo === "reta_numerica") h = 140;
   
   c.height = h;
   const ctx = c.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, c.width, c.height);
-  desenharFiguraQuestao(ctx, figura, 10, 5, c.width - 20);
+  desenharFiguraQuestao(ctx, figura, 15, 8, c.width - 30);
   return c;
 }
 
@@ -551,9 +555,11 @@ async function baixarDocx(){
         const canvasFig = gerarImagemFiguraQuestaoCanvas(q.figura);
         if(canvasFig){
           const imgFigBuffer = await canvasParaUint8Array(canvasFig);
-          let figW = 230, figH = 65;
-          if(q.figura.tipo === "relogio" || q.figura.tipo === "rosa_dos_ventos"){ figW = 210; figH = 80; }
-          else if(q.figura.tipo === "forma_geometrica" || q.figura.tipo === "mini_grafico"){ figW = 225; figH = 70; }
+          let figW = 240, figH = 75;
+          if(q.figura.tipo === "relogio" || q.figura.tipo === "rosa_dos_ventos"){ figW = 220; figH = 88; }
+          else if(q.figura.tipo === "forma_geometrica"){ figW = 230; figH = 80; }
+          else if(q.figura.tipo === "mini_grafico"){ figW = 245; figH = 85; }
+          else if(q.figura.tipo === "regua" || q.figura.tipo === "reta_numerica"){ figW = 250; figH = 65; }
           
           conteudoSecao2.push(
             new Paragraph({

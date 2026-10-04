@@ -335,6 +335,7 @@ Responda somente em formato JSON rigoroso.`;
         type: "object",
         properties: {
           titulo: { type: "string" },
+          tipoGrafico: { type: "string", enum: ["colunas", "barras", "linhas", "pizza", "regua"] },
           dados: {
             type: "array",
             items: {
@@ -381,6 +382,7 @@ Responda somente em formato JSON rigoroso.`;
                 altura: { type: "string" },
                 horas: { type: "number" },
                 minutos: { type: "number" },
+                tipoGrafico: { type: "string", enum: ["colunas", "barras", "linhas", "pizza"] },
                 rotulos: { type: "array", items: { type: "string" } },
                 valores: { type: "array", items: { type: "number" } },
                 numerador: { type: "number" },
