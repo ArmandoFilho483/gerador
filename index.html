@@ -230,6 +230,7 @@
     <div class="status" id="status"></div>
     <div class="actions">
       <button class="btn primary" id="baixar" disabled>Baixar atividade em PDF</button>
+      <button class="btn primary" id="baixarDocx" style="background:#1d6f42; border-color:#1d6f42;" disabled>📄 Baixar em Word (.docx)</button>
       <button class="btn ghost" id="refazer" disabled>Gerar outra versão</button>
     </div>
     <div class="preview" id="preview"></div>
@@ -239,6 +240,8 @@
 
 <footer>Feito para professores do 4º e 5º ano · Atividades geradas por IA — revise antes de aplicar.</footer>
 
+<!-- Biblioteca docx.js para geração de arquivos Word .docx formatados -->
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <!-- Firebase SDK (modo compatível com um único arquivo HTML) -->
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
@@ -526,6 +529,7 @@ const elSelecao = document.getElementById("selecao");
 const elStatus = document.getElementById("status");
 const elPrev = document.getElementById("preview");
 const btnBaixar = document.getElementById("baixar");
+const btnBaixarDocx = document.getElementById("baixarDocx");
 const btnRefazer = document.getElementById("refazer");
 const inpKey = document.getElementById("apikey");
 const settingsDialog = document.getElementById("settingsDialog");
@@ -745,6 +749,7 @@ btnSalvarKey.onclick = async ()=>{
 };
 btnRefazer.onclick = ()=> discSel && conteudoSel && gerar(discSel,conteudoSel);
 btnBaixar.onclick = baixar;
+if(btnBaixarDocx) btnBaixarDocx.onclick = baixarDocx;
 
 async function obterChave(){
   if(CHAVE_FIXA) return CHAVE_FIXA.trim();
@@ -758,7 +763,7 @@ function estado(nome, st, texto){
   b.dataset.state=st||""; b.querySelector(".st").textContent = texto;
 }
 function limpar(resetDisc=true){
-  atividade=null; paginas=[]; elPrev.innerHTML=""; btnBaixar.disabled=true; btnRefazer.disabled=true;
+  atividade=null; paginas=[]; elPrev.innerHTML=""; btnBaixar.disabled=true; if(btnBaixarDocx) btnBaixarDocx.disabled=true; btnRefazer.disabled=true;
   [...elDisc.children].forEach(c=>estado(c.dataset.nome,"","Ver 10 conteúdos"));
   [...elConteudos.children].forEach(c=>c.setAttribute("aria-pressed","false"));
   elSelecao.hidden=true;
@@ -913,9 +918,9 @@ Regras pedagógicas obrigatórias:
 - Respeite rigorosamente o nível cognitivo e os limites matemáticos estipulados para o ${turmaSel}.
 ${diretrizRecursoGeral}
 - RECURSOS VISUAIS SEMÂNTICOS NAS QUESTÕES: Em pelo menos 2 a 4 questões, inclua uma 'figura' pedagógica autêntica e semântica aderente à disciplina (${tiposSugeridos.join(", ")}). Nas questões sem imagem, use tipo 'nenhuma'.
-- Exatamente 10 questões de múltipla escolha com 4 alternativas cada (A, B, C, D).
+- Exatamente 10 questões de múltipla escolha com 5 alternativas cada (A, B, C, D, E).
 - As questões com figura DEVEM exigir que o aluno analise a imagem gerada para responder.
-- Apenas uma alternativa correta por questão, com distribuição equilibrada das alternativas corretas (A, B, C, D).
+- Apenas uma alternativa correta por questão, com distribuição rigorosa e equilibrada das alternativas corretas (A, B, C, D, E).
 - Distribuição equilibrada: 3 fáceis (compreensão direta), 4 médias (aplicação prática) e 3 que estimulem o raciocínio analítico adequado à idade.
 Responda somente em formato JSON rigoroso.`;
 
@@ -1056,11 +1061,11 @@ Responda somente em formato JSON rigoroso.`;
     const questoes = (json.questoes||[]).slice(0,10).map(q=>({
       enunciado:String(q.enunciado||"").trim(),
       figura: q.figura && q.figura.tipo && q.figura.tipo !== "nenhuma" ? q.figura : null,
-      alternativas:(q.alternativas||[]).slice(0,4).map(a=>String(a).replace(/^[A-Da-d][)\.\-\s]\s*/,"").trim()),
-      correta:String(q.correta||"A").trim().toUpperCase().replace(/[^A-D]/g,"").charAt(0) || "A"
-    })).filter(q=>q.enunciado && q.alternativas.length===4);
+      alternativas:(q.alternativas||[]).slice(0,5).map(a=>String(a).replace(/^[A-Ea-e][)\.\-\s]\s*/,"").trim()),
+      correta:String(q.correta||"A").trim().toUpperCase().replace(/[^A-E]/g,"").charAt(0) || "A"
+    })).filter(q=>q.enunciado && q.alternativas.length===5);
 
-    if(questoes.length < 10) throw new Error("A IA devolveu menos de 10 questões. Tente novamente.");
+    if(questoes.length < 10) throw new Error("A IA devolveu menos de 10 questões com 5 itens cada. Tente novamente.");
 
     // Validação de segurança anti-alucinação:
     const citaTabela = questoes.some(q=>q.enunciado.toLowerCase().includes("tabela"));
@@ -1085,8 +1090,10 @@ Responda somente em formato JSON rigoroso.`;
     elPrev.innerHTML="";
     paginas.forEach(c=>elPrev.appendChild(c));
     estado(nome,"ready","Atividade pronta ✓");
-    btnBaixar.disabled=false; btnRefazer.disabled=false;
-    msg("Atividade pronta: " + paginas.length + " páginas em um único PDF, incluindo o gabarito.");
+    btnBaixar.disabled=false;
+    if(btnBaixarDocx) btnBaixarDocx.disabled=false;
+    btnRefazer.disabled=false;
+    msg("Atividade pronta: " + paginas.length + " páginas no PDF e documento Word (.docx) disponível.");
     
     // Atualiza contador de hoje e histórico local de 7 dias
     incrementarContadorHoje();
@@ -1116,26 +1123,49 @@ function novaPagina(){
 }
 
 function cabecalho(ctx, a, pag, total, semNome){
-  ctx.fillStyle="#0f7a6b"; ctx.fillRect(M,70,W-2*M,120);
-  ctx.fillStyle="#f2b544"; ctx.fillRect(M,70,12,120);
-  ctx.fillStyle="#ffffff";
-  ctx.font="800 40px Nunito, sans-serif";
-  ctx.fillText(a.disciplina.toUpperCase(), M+36, 122);
-  ctx.font="600 24px Nunito, sans-serif";
-  ctx.fillStyle="#d8f2ec";
-  ctx.fillText(a.turma, M+36, 160);
-  ctx.textAlign="right";
-  ctx.font="700 20px Nunito, sans-serif";
-  ctx.fillText("Folha " + pag + "/" + total, W-M-24, 160);
-  ctx.textAlign="left";
+  // PÁGINA 1: Cabeçalho Completo com Bloco Institucional e Identificação do Aluno
+  if(pag === 1){
+    ctx.fillStyle="#0f7a6b"; ctx.fillRect(M,70,W-2*M,120);
+    ctx.fillStyle="#f2b544"; ctx.fillRect(M,70,12,120);
+    ctx.fillStyle="#ffffff";
+    ctx.font="800 40px Nunito, sans-serif";
+    ctx.fillText(a.disciplina.toUpperCase(), M+36, 122);
+    ctx.font="600 24px Nunito, sans-serif";
+    ctx.fillStyle="#d8f2ec";
+    ctx.fillText(a.turma, M+36, 160);
+    ctx.textAlign="right";
+    ctx.font="700 20px Nunito, sans-serif";
+    ctx.fillText("Folha " + pag + "/" + total, W-M-24, 160);
+    ctx.textAlign="left";
 
-  if(semNome) return 262;
-  ctx.strokeStyle="#c9c0ae"; ctx.lineWidth=2;
-  ctx.font="600 20px Nunito, sans-serif"; ctx.fillStyle="#3a4a52";
-  ctx.fillText("Nome:", M, 236);
-  linha(ctx, M+70, 240, W-M-300, 240);
-  ctx.fillText("Data: ___/___/_____", W-M-210, 236);
-  return 292;
+    if(semNome) return 262;
+    ctx.strokeStyle="#c9c0ae"; ctx.lineWidth=2;
+    ctx.font="600 20px Nunito, sans-serif"; ctx.fillStyle="#3a4a52";
+    ctx.fillText("Nome:", M, 236);
+    linha(ctx, M+70, 240, W-M-300, 240);
+    ctx.fillText("Data: ___/___/_____", W-M-210, 236);
+    return 292;
+  }
+
+  // PÁGINAS SEGUINTES (2+): Cabeçalho Editorial Compacto de Livro Profissional
+  // Disciplina à esquerda, Turma e Folha à direita + Linha Divisória Horizontal
+  ctx.fillStyle = "#0f7a6b";
+  ctx.font = "800 22px Nunito, sans-serif";
+  ctx.fillText(a.disciplina.toUpperCase(), M, 65);
+
+  ctx.textAlign = "right";
+  ctx.font = "600 19px Nunito, sans-serif";
+  ctx.fillStyle = "#64748b";
+  ctx.fillText(a.turma + "   ·   Folha " + pag + "/" + total, W-M, 65);
+  ctx.textAlign = "left";
+
+  // Linha horizontal divisória separando o cabeçalho do corpo da prova
+  ctx.strokeStyle = "#cbd5e1";
+  ctx.lineWidth = 1.5;
+  linha(ctx, M, 80, W-M, 80);
+
+  // Retorna y reduzido (apenas 115px em vez de 292px), liberando 177px de espaço útil!
+  return 115;
 }
 
 function linha(ctx,x1,y1,x2,y2){ ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke(); }
@@ -2146,7 +2176,7 @@ function desenhar(a){
     medidor.font="700 24px Nunito, sans-serif";
     const en = quebrar(medidor, (i+1)+". "+q.enunciado, W-2*M);
     medidor.font="400 23px Nunito, sans-serif";
-    const alts = q.alternativas.map((t,j)=>quebrar(medidor, "ABCD"[j]+") "+t, largQ));
+    const alts = q.alternativas.map((t,j)=>quebrar(medidor, ("ABCDE"[j] || "A")+") "+t, largQ));
 
     let hFigura = 0;
     if(q.figura){
@@ -2175,7 +2205,7 @@ function desenhar(a){
   const paginasDados=[];
   while(idx < blocos.length){
     const primeira=paginasDados.length===0;
-    const grupo=[]; let y=292+(primeira?intro.altura:0);
+    const grupo=[]; let y=(primeira ? 292 + intro.altura : 115);
     while(idx<blocos.length && y + blocos[idx].altura < H-120){ grupo.push(blocos[idx]); y+=blocos[idx].altura; idx++; }
     if(!grupo.length){ grupo.push(blocos[idx]); idx++; }
     paginasDados.push({grupo,primeira});
@@ -2329,6 +2359,551 @@ function baixar(){
 }
 
 /* ============================================================
+   EXPORTAÇÃO PROFISSIONAL PARA MICROSOFT WORD (.DOCX)
+   Margens 0.5cm · 2 Colunas com Linha Divisória · Fonte 11pt Justificada
+   ============================================================ */
+async function canvasParaUint8Array(canvas){
+  return new Promise((resolve, reject)=>{
+    canvas.toBlob(blob => {
+      if(!blob){ reject(new Error("Falha ao converter canvas")); return; }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const buffer = reader.result;
+        resolve(new Uint8Array(buffer));
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(blob);
+    }, "image/png");
+  });
+}
+
+function gerarImagemGraficoCanvas(grafico){
+  if(!grafico || !grafico.dados || !grafico.dados.length) return null;
+  const c = document.createElement("canvas");
+  c.width = 650;
+  c.height = 240;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, c.width, c.height);
+  desenharGrafico(ctx, grafico, 10, 10, c.width - 20);
+  return c;
+}
+
+function gerarImagemFiguraQuestaoCanvas(figura){
+  if(!figura || !figura.tipo || figura.tipo === "nenhuma") return null;
+  const c = document.createElement("canvas");
+  c.width = 650;
+  
+  let h = 140;
+  if(figura.tipo === "relogio" || figura.tipo === "rosa_dos_ventos") h = 180;
+  else if(figura.tipo === "forma_geometrica" || figura.tipo === "mini_grafico") h = 165;
+  else if(figura.tipo === "baloes_dialogo") h = 150;
+  else if(figura.tipo === "cadeia_alimentar" || figura.tipo === "reta_numerica") h = 110;
+  
+  c.height = h;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, c.width, c.height);
+  desenharFiguraQuestao(ctx, figura, 10, 5, c.width - 20);
+  return c;
+}
+
+async function baixarDocx(){
+  if(!atividade){ msg("Nenhuma atividade gerada para exportar.", true); return; }
+  if(typeof docx === "undefined"){
+    msg("A biblioteca do Word ainda está carregando ou indisponível. Aguarde alguns segundos.", true);
+    return;
+  }
+
+  msg("Preparando documento do Word (.docx) com formatação em 2 colunas…");
+
+  const {
+    Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+    WidthType, AlignmentType, BorderStyle, HeadingLevel, SectionType, ImageRun,
+    Header, Footer, PageNumber
+  } = docx;
+
+  // Conversão de medidas:
+  // 0.5 cm em twips = (0.5 / 2.54) * 1440 ≈ 283.46 twips
+  const margem05cm = 284;
+  // 11pt = 22 half-points
+  const font11pt = 22;
+  const fontHeaderPt = 24; // 12pt
+  const fontTitlePt = 32;  // 16pt
+
+  // Cabeçalho Nativo do Word para Páginas Seguintes (2+)
+  // Disciplina à esquerda, Turma à direita + Linha divisória horizontal
+  const cabecalhoWordPaginasSeguintes = new Header({
+    children: [
+      new Table({
+        width: { size: 100, type: WidthType.PERCENTAGE },
+        borders: {
+          top: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          left: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          right: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          insideVertical: { style: BorderStyle.NONE, size: 0, color: "auto" },
+          bottom: { style: BorderStyle.SINGLE, size: 6, color: "94A3B8" }
+        },
+        rows: [
+          new TableRow({
+            children: [
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE },
+                  right: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.SINGLE, size: 6, color: "94A3B8" }
+                },
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.LEFT,
+                    spacing: { after: 60 },
+                    children: [
+                      new TextRun({ text: atividade.disciplina.toUpperCase(), bold: true, size: 20, font: "Calibri", color: "0F7A6B" })
+                    ]
+                  })
+                ]
+              }),
+              new TableCell({
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: {
+                  top: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE },
+                  right: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.SINGLE, size: 6, color: "94A3B8" }
+                },
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.RIGHT,
+                    spacing: { after: 60 },
+                    children: [
+                      new TextRun({ text: atividade.turma, size: 18, font: "Calibri", color: "64748B" })
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  });
+
+  // Rodapé Nativo do Word (Linha divisória e Contagem dinâmica de Páginas)
+  const rodapeWordPaginas = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        spacing: { before: 80 },
+        border: {
+          top: { style: BorderStyle.SINGLE, size: 4, color: "CBD5E1" }
+        },
+        children: [
+          new TextRun({ text: "Página ", size: 18, font: "Calibri", color: "64748B" }),
+          new TextRun({ children: [PageNumber.CURRENT], size: 18, font: "Calibri", bold: true, color: "0F7A6B" }),
+          new TextRun({ text: " de ", size: 18, font: "Calibri", color: "64748B" }),
+          new TextRun({ children: [PageNumber.TOTAL_PAGES], size: 18, font: "Calibri", bold: true, color: "0F7A6B" })
+        ]
+      })
+    ]
+  });
+
+  const secoes = [];
+
+  // ==========================================
+  // SEÇÃO 1: CABEÇALHO, OBJETIVOS, TEXTO DE APOIO E DADOS (1 COLUNA)
+  // ==========================================
+  const conteudoSecao1 = [];
+
+  // Cabeçalho da Escola
+  conteudoSecao1.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({ text: "ESCOLA MUNICIPAL ENSINO FUNDAMENTAL", bold: true, size: 24, font: "Calibri" }),
+      ]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: [
+        new TextRun({ text: `ATIVIDADE AVALIATIVA · ${atividade.turma.toUpperCase()} · ${atividade.disciplina.toUpperCase()}`, bold: true, size: 22, font: "Calibri", color: "0F7A6B" }),
+      ]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { before: 120, after: 120 },
+      children: [
+        new TextRun({ text: "Estudante: ___________________________________________________________________  Data: ____/____/________", size: 20, font: "Calibri" }),
+      ]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { after: 180 },
+      children: [
+        new TextRun({ text: "Professor(a): ________________________________________________________________  Nota: ___________________", size: 20, font: "Calibri" }),
+      ]
+    })
+  );
+
+  // Título e Conteúdo
+  conteudoSecao1.push(
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { before: 140, after: 60 },
+      children: [
+        new TextRun({ text: atividade.titulo, bold: true, size: fontTitlePt, font: "Calibri", color: "1E293B" })
+      ]
+    }),
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { after: 120 },
+      children: [
+        new TextRun({ text: "Conteúdo BNCC: ", bold: true, size: font11pt, font: "Calibri", color: "0A5A4F" }),
+        new TextRun({ text: atividade.conteudo, italics: true, size: font11pt, font: "Calibri" })
+      ]
+    })
+  );
+
+  // Objetivos de Aprendizagem
+  if(atividade.objetivos && atividade.objetivos.length){
+    conteudoSecao1.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 100, after: 40 },
+        children: [
+          new TextRun({ text: "OBJETIVOS DE APRENDIZAGEM:", bold: true, size: 20, font: "Calibri", color: "0F7A6B" })
+        ]
+      })
+    );
+    atividade.objetivos.forEach(obj => {
+      conteudoSecao1.push(
+        new Paragraph({
+          bullet: { level: 0 },
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { after: 40 },
+          children: [
+            new TextRun({ text: obj, size: 20, font: "Calibri" })
+          ]
+        })
+      );
+    });
+  }
+
+  // Texto de Apoio (Justificado, 11pt)
+  if(atividade.textoApoio){
+    conteudoSecao1.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 160, after: 60 },
+        children: [
+          new TextRun({ text: "LEIA O TEXTO DE APOIO E RESPONDA ÀS QUESTÕES:", bold: true, size: 22, font: "Calibri", color: "E4572E" })
+        ]
+      }),
+      new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { after: 160, line: 276 },
+        children: [
+          new TextRun({ text: atividade.textoApoio, size: font11pt, font: "Calibri" })
+        ]
+      })
+    );
+  }
+
+  // Tabela Nativa do Word (Editável pelo Professor)
+  if(atividade.tabela && atividade.tabela.colunas && atividade.tabela.linhas){
+    conteudoSecao1.push(
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 100, after: 60 },
+        children: [
+          new TextRun({ text: `Tabela: ${atividade.tabela.titulo}`, bold: true, size: 20, font: "Calibri", color: "0F7A6B" })
+        ]
+      })
+    );
+
+    const tableRows = [];
+    // Linha de Cabeçalho da Tabela
+    tableRows.push(
+      new TableRow({
+        children: atividade.tabela.colunas.map(col => new TableCell({
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              children: [new TextRun({ text: String(col), bold: true, size: 20, font: "Calibri", color: "FFFFFF" })]
+            })
+          ],
+          shading: { fill: "0F7A6B" }
+        }))
+      })
+    );
+
+    // Linhas de Dados da Tabela
+    atividade.tabela.linhas.forEach((linhaArr, rIdx) => {
+      tableRows.push(
+        new TableRow({
+          children: linhaArr.map(val => new TableCell({
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.CENTER,
+                children: [new TextRun({ text: String(val), size: 20, font: "Calibri" })]
+              })
+            ],
+            shading: { fill: rIdx % 2 === 0 ? "F8FAFC" : "FFFFFF" }
+          }))
+        })
+      );
+    });
+
+    conteudoSecao1.push(
+      new Table({
+        rows: tableRows,
+        width: { size: 100, type: WidthType.PERCENTAGE }
+      }),
+      new Paragraph({ spacing: { after: 140 }, children: [] })
+    );
+  }
+
+  // Gráfico Estatístico (Renderizado em Alta Resolução pelo Canvas)
+  if(atividade.grafico && atividade.grafico.dados && atividade.grafico.dados.length){
+    try{
+      const canvasGrafico = gerarImagemGraficoCanvas(atividade.grafico);
+      if(canvasGrafico){
+        const imgBuffer = await canvasParaUint8Array(canvasGrafico);
+        conteudoSecao1.push(
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 100, after: 160 },
+            children: [
+              new ImageRun({
+                data: imgBuffer,
+                transformation: { width: 520, height: 190 }
+              })
+            ]
+          })
+        );
+      }
+    }catch(errGrafico){
+      console.warn("Não foi possível gerar imagem do gráfico para o Word:", errGrafico);
+    }
+  }
+
+  secoes.push({
+    properties: {
+      type: SectionType.CONTINUOUS,
+      titlePage: true, // Primeira página diferente: não mostra o cabeçalho no topo da folha 1
+      page: {
+        margin: { top: margem05cm, bottom: margem05cm, left: margem05cm, right: margem05cm }
+      }
+    },
+    headers: {
+      default: cabecalhoWordPaginasSeguintes
+    },
+    footers: {
+      default: rodapeWordPaginas
+    },
+    children: conteudoSecao1
+  });
+
+  // ==========================================
+  // SEÇÃO 2: QUESTÕES EM 2 COLUNAS COM LINHA CENTRAL
+  // ==========================================
+  const conteudoSecao2 = [];
+
+  conteudoSecao2.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 120, after: 140 },
+      children: [
+        new TextRun({ text: "— QUESTÕES DE MÚLTIPLA ESCOLHA (5 ALTERNATIVAS) —", bold: true, size: 20, font: "Calibri", color: "64748B" })
+      ]
+    })
+  );
+
+  for(let i = 0; i < atividade.questoes.length; i++){
+    const q = atividade.questoes[i];
+    
+    // Enunciado Justificado, 11pt
+    conteudoSecao2.push(
+      new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { before: 140, after: 60, line: 260 },
+        children: [
+          new TextRun({ text: `${i + 1}. `, bold: true, size: font11pt, font: "Calibri", color: "0F7A6B" }),
+          new TextRun({ text: q.enunciado, bold: true, size: font11pt, font: "Calibri", color: "1E293B" })
+        ]
+      })
+    );
+
+    // Figura Pedagógica Específica da Questão
+    if(q.figura && q.figura.tipo && q.figura.tipo !== "nenhuma"){
+      try{
+        const canvasFig = gerarImagemFiguraQuestaoCanvas(q.figura);
+        if(canvasFig){
+          const imgFigBuffer = await canvasParaUint8Array(canvasFig);
+          let figW = 320, figH = 80;
+          if(q.figura.tipo === "relogio" || q.figura.tipo === "rosa_dos_ventos"){ figW = 280; figH = 100; }
+          else if(q.figura.tipo === "forma_geometrica" || q.figura.tipo === "mini_grafico"){ figW = 300; figH = 90; }
+          
+          conteudoSecao2.push(
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 60, after: 80 },
+              children: [
+                new ImageRun({
+                  data: imgFigBuffer,
+                  transformation: { width: figW, height: figH }
+                })
+              ]
+            })
+          );
+        }
+      }catch(errFig){
+        console.warn(`Erro ao gerar imagem da questão ${i+1} para Word:`, errFig);
+      }
+    }
+
+    // 5 Alternativas (A, B, C, D, E) Justificadas, 11pt, Sem Espaçamento Entre Linhas (Single Spacing)
+    const letras = ["A", "B", "C", "D", "E"];
+    const totalAlts = q.alternativas.length;
+    q.alternativas.forEach((alt, j) => {
+      const letra = letras[j] || "A";
+      const ehUltima = (j === totalAlts - 1);
+      
+      conteudoSecao2.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          spacing: { before: 0, after: ehUltima ? 80 : 0, line: 240 },
+          indent: { left: 160 },
+          children: [
+            new TextRun({ text: `( ${letra} ) `, bold: true, size: font11pt, font: "Calibri", color: "0A5A4F" }),
+            new TextRun({ text: alt, size: font11pt, font: "Calibri" })
+          ]
+        })
+      );
+    });
+
+    // Linha divisória horizontal entre uma questão e a próxima
+    if(i < atividade.questoes.length - 1){
+      conteudoSecao2.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 60, after: 100 },
+          border: {
+            bottom: {
+              color: "94A3B8",
+              space: 1,
+              style: BorderStyle.SINGLE,
+              size: 6 // 0.75 pt
+            }
+          },
+          children: []
+        })
+      );
+    }
+  }
+
+  secoes.push({
+    properties: {
+      type: SectionType.CONTINUOUS,
+      page: {
+        margin: { top: margem05cm, bottom: margem05cm, left: margem05cm, right: margem05cm }
+      },
+      column: {
+        count: 2,
+        space: 720,      // espaço entre colunas
+        separate: true   // LINHA NO MEIO FORNECIDA PELO WORD
+      }
+    },
+    headers: {
+      default: cabecalhoWordPaginasSeguintes
+    },
+    footers: {
+      default: rodapeWordPaginas
+    },
+    children: conteudoSecao2
+  });
+
+  // ==========================================
+  // SEÇÃO 3: GABARITO DO PROFESSOR (1 COLUNA)
+  // ==========================================
+  const conteudoSecao3 = [
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 200, after: 120 },
+      children: [
+        new TextRun({ text: "GABARITO OFICIAL (FOLHA DO PROFESSOR)", bold: true, size: 24, font: "Calibri", color: "E4572E" })
+      ]
+    })
+  ];
+
+  const gabaritoCells = atividade.questoes.map((q, idx) => {
+    return new TableCell({
+      children: [
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          children: [
+            new TextRun({ text: `Q${idx + 1}: `, bold: true, size: 20, font: "Calibri" }),
+            new TextRun({ text: q.correta, bold: true, size: 22, font: "Calibri", color: "0F7A6B" })
+          ]
+        })
+      ],
+      shading: { fill: "F1F5F9" }
+    });
+  });
+
+  // Tabela de gabarito em 2 linhas de 5 colunas
+  const gabRow1 = new TableRow({ children: gabaritoCells.slice(0, 5) });
+  const gabRow2 = new TableRow({ children: gabaritoCells.slice(5, 10) });
+
+  conteudoSecao3.push(
+    new Table({
+      rows: [gabRow1, gabRow2],
+      width: { size: 100, type: WidthType.PERCENTAGE }
+    })
+  );
+
+  secoes.push({
+    properties: {
+      type: SectionType.CONTINUOUS,
+      page: {
+        margin: { top: margem05cm, bottom: margem05cm, left: margem05cm, right: margem05cm }
+      }
+    },
+    headers: {
+      default: cabecalhoWordPaginasSeguintes
+    },
+    footers: {
+      default: rodapeWordPaginas
+    },
+    children: conteudoSecao3
+  });
+
+  // Criação do Documento Docx
+  try{
+    const doc = new Document({
+      sections: secoes
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const base = (atividade.disciplina + "-" + atividade.conteudo + "-" + atividade.turma)
+      .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/[^a-zA-Z0-9]+/g,"-").toLowerCase();
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = base + ".docx";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1500);
+
+    msg("Documento Word (.docx) baixado com sucesso! Margens 0.5cm, 2 colunas e 5 alternativas.");
+  }catch(errDocx){
+    console.error("Falha ao gerar Word (.docx):", errDocx);
+    msg("Erro ao gerar o arquivo do Word: " + (errDocx.message || "Falha desconhecida"), true);
+  }
+}
+
+/* ============================================================
    HISTÓRICO LOCAL (7 DIAS COM AUTO-EXPURGO) E CONTADOR DIÁRIO
    ============================================================ */
 function obterChaveDataHoje(){
@@ -2412,6 +2987,7 @@ function carregarAtividadeDoHistorico(id){
   paginas.forEach(c => elPrev.appendChild(c));
   estado(discSel, "ready", "Atividade pronta ✓");
   btnBaixar.disabled = false;
+  if(btnBaixarDocx) btnBaixarDocx.disabled = false;
   btnRefazer.disabled = false;
   msg(`Atividade recuperada do histórico (${encontrada.dataStr}): ${paginas.length} páginas prontas.`);
   elPrev.scrollIntoView({behavior:"smooth", block:"start"});
