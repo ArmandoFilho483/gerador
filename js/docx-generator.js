@@ -582,27 +582,9 @@ async function baixarDocx(){
     new Paragraph({ spacing: { after: 140 }, children: [] })
   );
 
-  // Tabela das 10 Questões do Gabarito em 2 COLUNAS (5 linhas: ímpares à esquerda e pares à direita)
-  const linhasGabarito = [];
-  for(let r = 0; r < 5; r++){
-    const qEsq = atividade.questoes[r * 2];
-    const qDir = atividade.questoes[r * 2 + 1];
-
-    linhasGabarito.push(
-      new TableRow({
-        children: [
-          criarCardQuestaoGabaritoWord(qEsq, r * 2 + 1),
-          criarCardQuestaoGabaritoWord(qDir, r * 2 + 2)
-        ]
-      })
-    );
-  }
-
+  // Tabela Plana e Editável das 10 Questões do Gabarito (5 Colunas Nativas)
   conteudoSecao3.push(
-    new Table({
-      rows: linhasGabarito,
-      width: { size: 100, type: WidthType.PERCENTAGE }
-    }),
+    criarTabelaGabaritoPlanaWord(atividade.questoes),
     new Paragraph({ spacing: { after: 180 }, children: [] })
   );
 
