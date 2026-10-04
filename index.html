@@ -2654,14 +2654,17 @@ async function baixarDocx(){
       }
     }
 
-    // 5 Alternativas (A, B, C, D, E) Justificadas, 11pt
+    // 5 Alternativas (A, B, C, D, E) Justificadas, 11pt, Sem Espaçamento Entre Linhas (Single Spacing)
     const letras = ["A", "B", "C", "D", "E"];
+    const totalAlts = q.alternativas.length;
     q.alternativas.forEach((alt, j) => {
       const letra = letras[j] || "A";
+      const ehUltima = (j === totalAlts - 1);
+      
       conteudoSecao2.push(
         new Paragraph({
           alignment: AlignmentType.JUSTIFIED,
-          spacing: { after: 30, line: 240 },
+          spacing: { before: 0, after: ehUltima ? 80 : 0, line: 240 },
           indent: { left: 160 },
           children: [
             new TextRun({ text: `( ${letra} ) `, bold: true, size: font11pt, font: "Calibri", color: "0A5A4F" }),
@@ -2670,6 +2673,25 @@ async function baixarDocx(){
         })
       );
     });
+
+    // Linha divisória horizontal entre uma questão e a próxima
+    if(i < atividade.questoes.length - 1){
+      conteudoSecao2.push(
+        new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 60, after: 100 },
+          border: {
+            bottom: {
+              color: "94A3B8",
+              space: 1,
+              style: BorderStyle.SINGLE,
+              size: 6 // 0.75 pt
+            }
+          },
+          children: []
+        })
+      );
+    }
   }
 
   secoes.push({
