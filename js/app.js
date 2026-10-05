@@ -303,7 +303,19 @@ EIXO TEMÁTICO CONTEXTUAL OBRIGATÓRIO (ANTI-REPETIÇÃO):
 ${calibracaoAno}
 ${especificacaoVisual}
 
-Regras pedagógicas obrigatórias:
+DIRETRIZES DE RIGOR PEDAGÓGICO E AUTO-SUFICIÊNCIA (PADRÃO MEC/INEP):
+1. AUTO-SUFICIÊNCIA TOTAL DAS QUESTÕES:
+   - Toda questão DEVE ser 100% auto-suficiente: o aluno deve ter todas as informações para resolver a questão.
+   - NUNCA utilize termos como "abaixo", "a seguir", "ao lado", "veja a tirinha", "analise o verbete abaixo", "observe o mini gráfico abaixo" a menos que haja um objeto 'figura' válido associado à questão.
+   - Se a questão exigir análise de texto, diálogo, poema ou verbete de dicionário: transcreva o trecho completo entre aspas diretamente dentro do enunciado da questão. Exemplo: Leia o diálogo a seguir: "Carlos: — Devemos registrar cada detalhe. / Marcos: — Sim, a pesquisa precisa ser exata." O que a fala de Marcos demonstra?
+   - Se a questão for baseada na tabela ou gráfico introdutórios, refira-se a eles expressamente: "Observando a tabela de apoio...", "De acordo com o gráfico principal...".
+   - Toda questão DEVE conter um comando interrogativo explícito terminando com ponto de interrogação (?), NUNCA apenas uma introdução solta terminando com dois pontos (:).
+
+2. ESTRUTURA DE PARÁGRAFOS DO TEXTO DE APOIO:
+   - Estruture o 'textoApoio' separando os parágrafos com quebras de linha duplas (\\n\\n).
+   - Se o conteúdo envolver estrutura ou contagem de parágrafos, o número de parágrafos no 'textoApoio' DEVE corresponder RIGOROSAMENTE ao que a tabela e as questões afirmam (ex: se a questão diz que há 3 parágrafos, o texto DEVE conter exatamente 3 parágrafos distintos separados por \\n\\n).
+
+3. RECURSOS E REGRAS GERAIS:
 - Dê um título específico e contextualizado ao cenário sorteado.
 - Inclua 2 ou 3 objetivos de aprendizagem observáveis perfeitamente adequados à BNCC.
 ${diretrizRecursoGeral}
@@ -443,15 +455,26 @@ Responda somente em formato JSON rigoroso.`;
 
     const txt = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join("") || "";
     const json = JSON.parse(txt);
-    const questoes = (json.questoes || []).slice(0, 10).map(q => ({
-      enunciado: String(q.enunciado || "").trim(),
-      // Validação estrita: se a figura não tiver dados reais, ela é anulada na raiz!
-      figura: figuraPossuiDadosValidos(q.figura) ? q.figura : null,
-      alternativas: (q.alternativas || []).slice(0, 5).map(a => String(a).replace(/^[A-Ea-e][)\.\-\s]\s*/, "").trim()),
-      correta: String(q.correta || "A").trim().toUpperCase().replace(/[^A-E]/g, "").charAt(0) || "A"
-    })).filter(q => q.enunciado && q.alternativas.length === 5);
+    const temTabela = Boolean(json.tabela && json.tabela.colunas && json.tabela.linhas);
+    const temGrafico = Boolean(json.grafico && json.grafico.dados && json.grafico.dados.length);
 
-    if(questoes.length !== 10) throw new Error("A IA devolveu " + questoes.length + " questões. A atividade exige exatamente 10 questões completas.");
+    const questoesProcessadas = [];
+    const questoesBrutas = json.questoes || [];
+
+    for(let i = 0; i < questoesBrutas.length; i++){
+      const res = sanitizarEValidarQuestao(questoesBrutas[i], temTabela, temGrafico);
+      if(!res.valida){
+        console.warn(`[Validador Pedagógico] Questão ${i + 1} descartada:`, res.motivo);
+      } else {
+        questoesProcessadas.push(res.questao);
+      }
+    }
+
+    if(questoesProcessadas.length < 10){
+      throw new Error(`A atividade gerada contém questões com referências visuais inexistentes ou dados incompletos (${questoesProcessadas.length}/10 válidas). Clique em Gerar Novamente.`);
+    }
+
+    const questoes = questoesProcessadas.slice(0, 10);
 
     atividade = {
       turma: turmaSel,

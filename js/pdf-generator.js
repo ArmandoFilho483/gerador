@@ -69,6 +69,34 @@ function cabecalho(ctx, a, pag, total, semNome){
   return 115;
 }
 
+function quebrarParagrafos(ctx, texto, largura, recuoPrimeiraLinha = 36){
+  const blocos = String(texto || "").split(/\n+/).map(p => p.trim()).filter(Boolean);
+  const linhas = [];
+  blocos.forEach((p, pIdx) => {
+    const palavras = p.split(/\s+/).filter(Boolean);
+    let atual = "";
+    let primeiraLinha = true;
+    palavras.forEach(palavra => {
+      const limite = primeiraLinha ? (largura - recuoPrimeiraLinha) : largura;
+      const t = atual ? atual + " " + palavra : palavra;
+      if(ctx.measureText(t).width > limite && atual){
+        linhas.push({ texto: atual, recuo: primeiraLinha ? recuoPrimeiraLinha : 0 });
+        atual = palavra;
+        primeiraLinha = false;
+      } else {
+        atual = t;
+      }
+    });
+    if(atual){
+      linhas.push({ texto: atual, recuo: primeiraLinha ? recuoPrimeiraLinha : 0 });
+    }
+    if(pIdx < blocos.length - 1){
+      linhas.push({ texto: "", recuo: 0, espacoExtra: 10 });
+    }
+  });
+  return linhas;
+}
+
 function prepararIntroducao(ctx, a){
   ctx.font = "800 32px Nunito, sans-serif";
   const titulo = quebrar(ctx, a.titulo, W - 2 * M);
@@ -77,7 +105,8 @@ function prepararIntroducao(ctx, a){
   ctx.font = "600 19px Nunito, sans-serif";
   const objetivos = (a.objetivos || []).flatMap(o => quebrar(ctx, "• " + o, W - 2 * M - 26));
   ctx.font = "400 20px Nunito, sans-serif";
-  const apoio = quebrar(ctx, a.textoApoio || "", W - 2 * M - 36);
+  const apoio = quebrarParagrafos(ctx, a.textoApoio || "", W - 2 * M - 36, 36);
+  const hApoio = apoio.reduce((acc, l) => acc + (l.texto ? 29 : (l.espacoExtra || 14)), 0);
 
   let hExtra = 0;
   const temTab = a.tabela && a.tabela.colunas && a.tabela.linhas;
@@ -93,7 +122,7 @@ function prepararIntroducao(ctx, a){
     hExtra += 235;
   }
 
-  const altura = titulo.length * 40 + conteudo.length * 28 + objetivos.length * 27 + apoio.length * 29 + 165 + hExtra;
+  const altura = titulo.length * 40 + conteudo.length * 28 + objetivos.length * 27 + hApoio + 165 + hExtra;
   return { titulo, conteudo, objetivos, apoio, altura, tabela: a.tabela, grafico: a.grafico };
 }
 
@@ -128,7 +157,14 @@ function desenharIntroducao(ctx, intro, y){
 
   ctx.fillStyle = "#2c3c45";
   ctx.font = "400 20px Nunito, sans-serif";
-  intro.apoio.forEach(l => { ctx.fillText(l, M + 10, y); y += 29; });
+  intro.apoio.forEach(l => {
+    if(l.texto){
+      ctx.fillText(l.texto, M + 10 + (l.recuo || 0), y);
+      y += 29;
+    } else {
+      y += l.espacoExtra || 14;
+    }
+  });
   y += 12;
 
   // Renderiza tabela e gráfico visual (lado a lado se ambos existirem)
