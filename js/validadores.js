@@ -76,3 +76,68 @@ function figuraPossuiDadosValidos(fig){
       return false;
   }
 }
+
+/* ============================================================
+   VALIDADOR E SANITIZADOR DE ENUNCIADOS (BLINDAGEM ANTI-FANTASMAS)
+   Impede que questões façam menção a imagens ou gráficos que não existem.
+   ============================================================ */
+function sanitizarEValidarQuestao(q, temTabelaIntro, temGraficoIntro){
+  if(!q || typeof q !== "object") return { valida: false, motivo: "Objeto de questão nulo" };
+
+  let en = String(q.enunciado || "").trim();
+  if(!en) return { valida: false, motivo: "Enunciado vazio" };
+
+  const temFigura = figuraPossuiDadosValidos(q.figura);
+  const figuraValida = temFigura ? q.figura : null;
+
+  // Sanitização inteligente: se a questão se refere à tabela ou gráfico da introdução usando "abaixo", corrigimos a redação
+  if(temTabelaIntro){
+    en = en.replace(/\b(?:na|da)\s+tabela\s+(?:abaixo|a\s+seguir|ao\s+lado)\b/gi, "na tabela de apoio")
+           .replace(/\b(?:a|pela)\s+tabela\s+(?:abaixo|a\s+seguir|ao\s+lado)\b/gi, "a tabela de apoio");
+  }
+  if(temGraficoIntro){
+    en = en.replace(/\b(?:no|do)\s+gr[áa]fico\s+(?:abaixo|a\s+seguir|ao\s+lado)\b/gi, "no gráfico principal")
+           .replace(/\b(?:ao|pelo)\s+gr[áa]fico\s+(?:abaixo|a\s+seguir|ao\s+lado)\b/gi, "ao gráfico principal");
+  }
+
+  // Se NÃO possui figura vetorial desenhada na questão:
+  if(!figuraValida){
+    // Detecta elementos fantasmas que dependem de imagem própria inexistente
+    const regexFantasmas = [
+      /\bmini[\s\-]gr[áa]fico\b/i,
+      /\b(?:gr[áa]fico|tabela|tirinha|figura|imagem|ilustra[çc][ãa]o|desenho|quadrinho|esquema|reta\s+num[ée]rica|balan[çc]a|rel[óo]gio|verbete)\s+(?:abaixo|a\s+seguir|ao\s+lado)\b/i,
+      /\b(?:veja|observe|analise)\s+a\s+tirinha\b/i,
+      /\b(?:veja|observe|analise)\s+o\s+verbete\b/i,
+      /\babaixo\s+(?:que\s+mostra|ilustra|sobre\s+a)\b/i
+    ];
+
+    for(const padrao of regexFantasmas){
+      if(padrao.test(en)){
+        return {
+          valida: false,
+          motivo: `Enunciado faz referência a elemento visual inexistente na questão: "${en.match(padrao)[0]}"`,
+          questao: { ...q, enunciado: en, figura: null }
+        };
+      }
+    }
+  }
+
+  // Garante alternativas válidas (exatamente 5, não vazias)
+  const alts = (q.alternativas || []).slice(0, 5).map(a => String(a).replace(/^[A-Ea-e][)\.\-\s]\s*/, "").trim());
+  if(alts.length !== 5 || alts.some(a => !a)){
+    return { valida: false, motivo: "Alternativas incompletas ou com menos de 5 opções", questao: q };
+  }
+
+  // Garante letra correta de A a E
+  let correta = String(q.correta || "A").trim().toUpperCase().replace(/[^A-E]/g, "").charAt(0) || "A";
+
+  return {
+    valida: true,
+    questao: {
+      enunciado: en,
+      figura: figuraValida,
+      alternativas: alts,
+      correta
+    }
+  };
+}

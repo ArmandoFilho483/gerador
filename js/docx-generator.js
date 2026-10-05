@@ -231,15 +231,21 @@ async function baixarDocx(){
         children: [
           new TextRun({ text: "LEIA, ANALISE E RESPONDA", bold: true, size: 20, font: "Calibri", color: "E4572E" })
         ]
-      }),
-      new Paragraph({
-        alignment: AlignmentType.JUSTIFIED,
-        spacing: { after: 120, line: 260 },
-        children: [
-          new TextRun({ text: atividade.textoApoio, size: font11pt, font: "Calibri", color: "2C3C45" })
-        ]
       })
     );
+    const paragrafosApoio = String(atividade.textoApoio || "").split(/\n+/).map(p => p.trim()).filter(Boolean);
+    paragrafosApoio.forEach(p => {
+      conteudoSecao1.push(
+        new Paragraph({
+          alignment: AlignmentType.JUSTIFIED,
+          indent: { firstLine: 284 }, // Recuo de 0,5cm na primeira linha (padrão MEC/ABNT)
+          spacing: { after: 80, line: 260 },
+          children: [
+            new TextRun({ text: p, size: font11pt, font: "Calibri", color: "2C3C45" })
+          ]
+        })
+      );
+    });
   }
 
   // Tabela e Gráfico Lado a Lado (50%/50%)
