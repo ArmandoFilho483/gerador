@@ -69,7 +69,7 @@ async function baixarDocx(){
     Header, Footer, PageNumber, ColumnBreak
   } = docx;
 
-  const margem05cm = 284; // 0.5cm em twips
+  const margem1cm = 567;  // 1.0cm padrão MEC/INEP em twips
   const font11pt = 22;    // 11pt
   const fontTitlePt = 32; // 16pt
 
@@ -302,7 +302,7 @@ async function baixarDocx(){
 
     celulaGraficoChildren.push(
       new Paragraph({
-        alignment: AlignmentType.LEFT,
+        alignment: AlignmentType.CENTER,
         spacing: { before: 40, after: 30 },
         children: [
           new TextRun({ text: `GRÁFICO: ${atividade.grafico.titulo}`, bold: true, size: 18, font: "Calibri", color: "0A5A4F" })
@@ -437,7 +437,7 @@ async function baixarDocx(){
       type: SectionType.CONTINUOUS,
       titlePage: true,
       page: {
-        margin: { top: margem05cm, bottom: margem05cm, left: margem05cm, right: margem05cm }
+        margin: { top: margem1cm, bottom: margem1cm, left: margem1cm, right: margem1cm }
       }
     },
     headers: { default: cabecalhoWordPaginasSeguintes },
@@ -453,20 +453,11 @@ async function baixarDocx(){
   for(let i = 0; i < atividade.questoes.length; i++){
     const q = atividade.questoes[i];
     
-    // Balanceamento de colunas: força transição para a 2ª coluna exatamente na metade das questões (questão 6)
-    if(i === 5){
-      conteudoSecao2.push(
-        new Paragraph({
-          children: [new ColumnBreak()]
-        })
-      );
-    }
-    
     // Enunciado Justificado, 11pt, com PULO DE 1 LINHA
     conteudoSecao2.push(
       new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
-        spacing: { before: (i === 0 || i === 5) ? 0 : 240, after: 40, line: 250 },
+        spacing: { before: i === 0 ? 0 : 240, after: 40, line: 250 },
         children: [
           new TextRun({ text: `${i + 1}. `, bold: true, size: font11pt, font: "Calibri", color: "0F7A6B" }),
           new TextRun({ text: q.enunciado, bold: true, size: font11pt, font: "Calibri", color: "20303A" })
@@ -507,7 +498,7 @@ async function baixarDocx(){
       }
     }
 
-    // Alternativas (○  A)  Texto)
+    // Alternativas (○  A)  Texto) - Alinhadas à esquerda com recuo editorial MEC/INEP (0,5 cm)
     const letras = ["A", "B", "C", "D", "E"];
     const totalAlts = q.alternativas.length;
     q.alternativas.forEach((alt, j) => {
@@ -516,9 +507,9 @@ async function baixarDocx(){
       
       conteudoSecao2.push(
         new Paragraph({
-          alignment: AlignmentType.JUSTIFIED,
+          alignment: AlignmentType.LEFT,
           spacing: { before: 0, after: ehUltima ? 40 : 0, line: 240 },
-          indent: { left: 100 },
+          indent: { left: 284 },
           children: [
             new TextRun({ text: "○ ", size: font11pt, font: "Calibri", color: "94A3B8" }),
             new TextRun({ text: `${letra}) `, bold: true, size: font11pt, font: "Calibri", color: "20303A" }),
@@ -529,15 +520,16 @@ async function baixarDocx(){
     });
   }
 
+  // Seção 2: 2 Colunas com auto-balanceamento natural e linha divisória fina de 0,5pt
   secoes.push({
     properties: {
       type: SectionType.CONTINUOUS,
       page: {
-        margin: { top: margem05cm, bottom: margem05cm, left: margem05cm, right: margem05cm }
+        margin: { top: margem1cm, bottom: margem1cm, left: margem1cm, right: margem1cm }
       },
       column: {
         count: 2,
-        space: 720,
+        space: 567, // 1,0 cm de respiro
         separate: true
       }
     },
@@ -546,40 +538,37 @@ async function baixarDocx(){
     children: conteudoSecao2
   });
 
+  // Seção de transição contínua para 1 coluna (Fecha o fluxo de 2 colunas equilibrando esquerda/direita)
+  secoes.push({
+    properties: {
+      type: SectionType.CONTINUOUS,
+      page: {
+        margin: { top: margem1cm, bottom: margem1cm, left: margem1cm, right: margem1cm }
+      },
+      column: {
+        count: 1
+      }
+    },
+    headers: { default: cabecalhoWordPaginasSeguintes },
+    footers: { default: rodapeWordPaginas },
+    children: [new Paragraph({ children: [] })]
+  });
+
   // ==========================================
   // SEÇÃO 3: FOLHA DO PROFESSOR · GABARITO OFICIAL (EM FOLHA SEPARADA NEXT_PAGE)
   // ==========================================
   const conteudoSecao3 = [];
   conteudoSecao3.push(...criarBlocoCabecalhoWord("Folha 4/4", true, atividade));
 
-  // Faixa Laranja do Gabarito Oficial
+  // Título do Gabarito Oficial como Parágrafo Nativo Puro (Fácil de editar no Word)
   conteudoSecao3.push(
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: {
-        top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
-        left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }
-      },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              shading: { fill: "E4572E" },
-              margins: { top: 80, bottom: 80, left: 160, right: 160 },
-              children: [
-                new Paragraph({
-                  alignment: AlignmentType.LEFT,
-                  children: [
-                    new TextRun({ text: "FOLHA DO PROFESSOR · GABARITO OFICIAL", bold: true, size: 24, font: "Calibri", color: "FFFFFF" })
-                  ]
-                })
-              ]
-            })
-          ]
-        })
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { before: 140, after: 120 },
+      children: [
+        new TextRun({ text: "FOLHA DO PROFESSOR · GABARITO OFICIAL", bold: true, size: 24, font: "Calibri", color: "E4572E" })
       ]
-    }),
-    new Paragraph({ spacing: { after: 140 }, children: [] })
+    })
   );
 
   // Tabela Plana e Editável das 10 Questões do Gabarito (5 Colunas Nativas)
@@ -674,7 +663,7 @@ async function baixarDocx(){
       type: SectionType.NEXT_PAGE,
       titlePage: true,
       page: {
-        margin: { top: margem05cm, bottom: margem05cm, left: margem05cm, right: margem05cm }
+        margin: { top: margem1cm, bottom: margem1cm, left: margem1cm, right: margem1cm }
       }
     },
     headers: { default: cabecalhoWordPaginasSeguintes },
